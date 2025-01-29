@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+
+  backend:
+    build:
+      context: ./echo-server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    networks:
+      - webapp-network
+    volumes:
+      - ./echo-server:/usr/src/app
+      - /usr/src/app/node_modules
+
+  frontend:
+    build:
+      context: ./echo-editor
+      dockerfile: Dockerfile
+    ports:
+      - "3001:5173"
+    volumes:
+      - ./echo-editor:/app
+      - /app/node_modules
+    networks:
+      - webapp-network
+
+  nginx:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - webapp-network
+
+  db:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - webapp-network
+
+volumes:
+  postgres-data:
+
+networks:
+  webapp-network:
+    driver: bridge
+

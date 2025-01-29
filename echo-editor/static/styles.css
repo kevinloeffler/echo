@@ -1,0 +1,269 @@
+
+/*region CSS Reset*/
+/* 1. Use a more-intuitive box-sizing model */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* 2. Remove default margin */
+* {
+    margin: 0;
+}
+
+body {
+    /* 3. Add accessible line-height */
+    line-height: 1.5;
+    /* 4. Improve text rendering */
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 5. Improve media defaults */
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+/* 6. Inherit fonts for form controls */
+input, button, textarea, select {
+    font: inherit;
+}
+
+/* 7. Avoid text overflows */
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+}
+
+/* 8. Improve line wrapping */
+p {
+    text-wrap: pretty;
+}
+h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+}
+
+/*
+  9. Create a root stacking context
+*/
+#root, #__next {
+    isolation: isolate;
+}
+/*endregion*/
+
+
+:root {
+    --accent: #F86744;
+    --accent-hover: #d54d2e;
+    --text: #FFFFFF;
+    --text-secondary: #A9A9A9;
+    --background: #1C1E22;
+    --editor: #23272F;
+    --divider: #343947;
+    --disabled: #3A3A3A;
+    --button-secondary: #4B6791;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+
+    color: var(--text);
+    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.1rem;
+    font-weight: 400;
+    background-color: var(--background);
+}
+
+
+/*region Fonts*/
+
+@font-face {
+    font-family: 'EB Garamond';
+    src: url('/fonts/EBGaramond.ttf');
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('/fonts/Inter.ttf');
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DM Serif Display';
+    src: url('/fonts/DMSerifDisplay.ttf');
+    font-weight: 500;
+    font-display: swap;
+}
+
+/*endregion*/
+
+
+/*region Page */
+
+.page {
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+}
+
+.page-wrapper {
+    width: 90%;
+    max-width: 1000px;
+}
+
+/*endregion*/
+
+/*region Buttons */
+
+.button {
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    margin-bottom: 8px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5em;
+
+    padding: 8px 12px;
+    width: 100%;
+    min-height: 40px;
+
+    cursor: pointer;
+    transition-duration: 250ms;
+}
+
+.button:disabled {
+    background-color: var(--disabled);
+    cursor: not-allowed;
+}
+
+.button > img {
+    height: 1.2em;
+}
+
+.button-primary {
+    color: var(--text);
+    background-color: var(--accent);
+}
+
+.button-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.button-secondary {
+    color: var(--text);
+    background-color: var(--button-secondary);
+}
+
+.button-secondary:hover {
+    background-color: #354d70;
+}
+
+
+/*endregion*/
+
+
+/*region Editor Error Message */
+
+.cm-scroller {  /* Dont clip error message */
+    overflow-x: visible !important;
+}
+
+.cm-error {
+    position: absolute;
+    right: 0;
+    background-color: #DE5667;
+    color: white;
+    width: 200px;
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-top: -2px;
+
+    transition: height 0.3s ease, padding 0.3s ease;
+    transition-duration: 1000ms;
+}
+
+.cm-error:hover {
+    z-index: 99;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.cm-error:hover > .cm-error-content {
+    display: block;
+}
+
+.cm-error-content {
+    display: none;
+}
+
+.cm-error-header {
+    display: flex;
+}
+
+.cm-error-header > img {
+    margin-right: 4px;
+}
+
+.cm-error-text {
+    font-size: 12px;
+    margin: 0;
+}
+
+.cm-error-description {
+    font-size: 12px;
+    margin: 4px 0;
+    max-width: 100%;
+    white-space: normal;
+
+    border-top: solid 1px #F58B98;
+    padding-top: 2px;
+}
+
+.cm-error-button-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.cm-error-main-button {
+    background-color: white;
+    outline: none;
+    border: none;
+    border-radius: 4px;
+    color: #DE5667;
+    padding: 4px 6px;
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.cm-error-main-button:hover {
+    cursor: pointer;
+    background-color: #ffcbcb;
+}
+
+.cm-error-secondary-button {
+    background-color: #F58B98;
+    outline: none;
+    border: none;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.cm-error-secondary-button:hover {
+    background-color: #d56c78;
+}
+
+.cm-error-secondary-button > img {
+    height: 12px;
+}
+
+/*endregion*/
