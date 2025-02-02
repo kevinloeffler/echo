@@ -43,10 +43,11 @@
         color: var(--text);
         background-color: var(--divider);
         cursor: pointer;
-        transition: background-color 200ms;
+        transition: color 200ms, background-color 200ms;
     }
 
     .create-project-button:hover {
+        color: var(--accent);
         background-color: #2b2f3b;
     }
 
