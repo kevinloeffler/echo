@@ -15,13 +15,9 @@
                 <div class="courses-wrapper">
                     <p class="block-label">Kurse</p>
                     <div class="courses block">
-                        {#await loadCourses()}
-                            <div class="loading-placeholder">
-                                <LoadingIndicator />
-                            </div>
-                        {:then result}
-                            {#each result as course}
-                                <p>{course.name}</p>
+                        {#if courses}
+                            {#each courses as course}
+                                <CourseDisplay course={course} />
                             {/each}
                             <button onclick={() => showCourseModal = true} class="create-course-button">
                                 Neuen Kurs erstellen
@@ -35,7 +31,11 @@
                                     <button onclick={createCourse}>Kurs Erstellen</button>
                                 </div>
                             </Modal>
-                        {/await}
+                        {:else}
+                            <div class="loading-placeholder">
+                                <LoadingIndicator />
+                            </div>
+                        {/if}
                     </div>
                 </div>
 
@@ -44,13 +44,13 @@
                         Projekte
                     </p>
                     <div class="projects block">
-                        {#await loadProjects()}
+                        {#if projects}
+                            <ProjectDisplay projects={projects} />
+                        {:else}
                             <div class="loading-placeholder">
                                 <LoadingIndicator />
                             </div>
-                        {:then projects}
-                            <ProjectDisplay projects={projects} />
-                        {/await}
+                        {/if}
                     </div>
                 </div>
 
@@ -74,18 +74,41 @@
     import ProjectDisplay from './project_display.svelte'
     import LoadingIndicator from '$lib/components/loading_indicator.svelte'
     import Modal from '$lib/components/modal.svelte'
+    import CourseDisplay from '$lib/components/dashboard/teacher_course_display.svelte'
+
     import {PUBLIC_API_URL} from '$env/static/public'
     import {goto} from '$app/navigation'
+    import {onMount} from 'svelte'
 
     let { user } = $props()
+
+    let courses = $state<Optional<[]>>(undefined)
+    let projects = $state([])
+
+    onMount(async () => {
+        courses = await loadCourses()
+        projects = await loadProjects()
+    })
 
     /* Create Course */
     let showCourseModal = $state(false)
     let courseName = $state('')
 
     async function createCourse() {
-        // TODO: implement
-        return []
+        if (!showCourseModal) return  // TODO: show error message
+
+        const res = await fetch(`${PUBLIC_API_URL}/courses`, {
+            method: 'POST',
+            credentials: 'include',
+            body: JSON.stringify({ name: courseName }),
+        })
+        const response = await res.json()
+        if (!response.status) {
+            // TODO: alert user
+        }
+        showCourseModal = false
+        courseName = ''
+        courses = await loadCourses()
     }
 
     /* Load Data */
@@ -206,10 +229,11 @@
         color: var(--text);
         background-color: var(--divider);
         cursor: pointer;
-        transition: background-color 200ms;
+        transition: color 200ms, background-color 200ms;
     }
 
     .create-course-button:hover {
+        color: var(--accent);
         background-color: #2b2f3b;
     }
 
