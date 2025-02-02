@@ -23,9 +23,18 @@
                             {#each result as course}
                                 <p>{course.name}</p>
                             {/each}
-                            <button onclick={createCourse} class="create-course-button">
+                            <button onclick={() => showCourseModal = true} class="create-course-button">
                                 Neuen Kurs erstellen
                             </button>
+                            <Modal bind:showModal={showCourseModal} title="Neuen Kurs erstellen">
+                                <div class="modal-content">
+                                    <label>
+                                        Kursname
+                                        <input bind:value={courseName} type="text" autofocus />
+                                    </label>
+                                    <button onclick={createCourse}>Kurs Erstellen</button>
+                                </div>
+                            </Modal>
                         {/await}
                     </div>
                 </div>
@@ -64,20 +73,35 @@
     import ProfileDisplay from './profile_display.svelte'
     import ProjectDisplay from './project_display.svelte'
     import LoadingIndicator from '$lib/components/loading_indicator.svelte'
+    import Modal from '$lib/components/modal.svelte'
+    import {PUBLIC_API_URL} from '$env/static/public'
+    import {goto} from '$app/navigation'
 
     let { user } = $props()
 
-    async function loadCourses() {
+    /* Create Course */
+    let showCourseModal = $state(false)
+    let courseName = $state('')
+
+    async function createCourse() {
         // TODO: implement
         return []
+    }
+
+    /* Load Data */
+
+    async function loadCourses() {
+        const res = await fetch(`${PUBLIC_API_URL}/courses`, {
+            method: 'GET',
+            credentials: 'include',
+        })
+        if (res.status === 401) {
+            await goto('/login')
+        }
+        return res.json()
     }
 
     async function loadProjects() {
-        // TODO: implement
-        return []
-    }
-
-    async function createCourse() {
         // TODO: implement
         return []
     }
@@ -127,6 +151,44 @@
     .courses-and-projects-wrapper {
         display: flex;
         gap: 20px;
+    }
+
+    .modal-content {
+        width: 400px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 16px;
+    }
+
+    .modal-content > label {
+        font-size: 12px;
+        font-weight: 600;
+        width: 100%;
+    }
+
+    .modal-content > label > input {
+        display: block;
+        width: 100%;
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--text);
+        background-color: var(--editor);
+        padding: 12px 16px;
+        margin-top: 2px;
+        margin-bottom: 12px;
+        border: none;
+        border-radius: 8px;
+    }
+
+    .modal-content > button {
+        color: var(--text);
+        background-color: var(--accent);
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
     }
 
     /* COURSES */
