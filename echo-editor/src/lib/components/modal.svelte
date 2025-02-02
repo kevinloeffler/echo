@@ -22,7 +22,11 @@
     let dialog = $state<HTMLDialogElement>()
 
     $effect(() => {
-        if (showModal) dialog?.showModal();
+        if (showModal) {
+            dialog?.showModal()
+        } else {
+            dialog?.close()
+        }
     })
 
 </script>
