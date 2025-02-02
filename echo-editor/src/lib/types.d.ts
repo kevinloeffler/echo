@@ -9,3 +9,23 @@ type PythonOutput = {
 }
 
 type UserRoles = 'Admin'| 'Teacher' | 'Student'
+
+type User = {
+
+}
+
+type Chapter = {}
+
+type Lesson = {}
+
+type Course = {
+    id?: string,
+    name: string,
+    description: string,
+    hidden: boolean,
+    archived: boolean,
+
+    students: User[],
+    content: Chapter[] | Lesson[],
+    teacher: User,
+}
