@@ -10,7 +10,6 @@ import {DB} from '../lib/database_service'
 module.exports = async function (fastify: FastifyInstance, opts: any) {
     const db = fastify.pg
 
-    // Get all users (with optional role filter)
     // @ts-ignore
     fastify.get('/courses', { onRequest: [fastify.authenticate] },
         async (req: FastifyRequest, reply: FastifyReply) => {
@@ -39,11 +38,12 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
     fastify.post('/courses', { onRequest: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
         async (req: FastifyRequest, reply: FastifyReply) => {
             const user = req.user as User
-            const { name, description, hidden } = req.body as any
+            const body = await JSON.parse(req.body as string)
+            const { name } = body
             if (!name) return reply.code(400).send({ error: "Missing required fields: 'name'" })
-            const result = await DB.courses.new(name, description || '', user.id, hidden || false, false, db)
-            console.log('result', result)
-            return reply.code(200).send({ message: 'Course created' })
+            const result = await DB.courses.new(name, '', user.id, false, false, db)
+            console.log('insert course result:', result)
+            return reply.code(200).send({ status: true, message: 'Course created' })
         })
 
     // @ts-ignore

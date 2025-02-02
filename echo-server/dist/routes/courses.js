@@ -19,7 +19,6 @@ const database_service_1 = require("../lib/database_service");
 module.exports = function (fastify, opts) {
     return __awaiter(this, void 0, void 0, function* () {
         const db = fastify.pg;
-        // Get all users (with optional role filter)
         // @ts-ignore
         fastify.get('/courses', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
             const user = req.user;
@@ -40,12 +39,13 @@ module.exports = function (fastify, opts) {
         // @ts-ignore
         fastify.post('/courses', { onRequest: [fastify.userHasAnyRole([types_1.UserRole.TEACHER, types_1.UserRole.ADMIN])] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
             const user = req.user;
-            const { name, description, hidden } = req.body;
+            const body = yield JSON.parse(req.body);
+            const { name } = body;
             if (!name)
                 return reply.code(400).send({ error: "Missing required fields: 'name'" });
-            const result = yield database_service_1.DB.courses.new(name, description || '', user.id, hidden || false, false, db);
-            console.log('result', result);
-            return reply.code(200).send({ message: 'Course created' });
+            const result = yield database_service_1.DB.courses.new(name, '', user.id, false, false, db);
+            console.log('insert course result:', result);
+            return reply.code(200).send({ status: true, message: 'Course created' });
         }));
         // @ts-ignore
         fastify.patch('/courses/:id', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
