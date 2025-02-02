@@ -32,7 +32,7 @@
             </div>
 
             <div class="login-footer division">
-                <a href="/">Source Code</a>
+                <a href="https://github.com/kevinloeffler/echo" target="_blank">Source Code</a>
                 <a href="/impressum">Impressum</a>
             </div>
         </div>
