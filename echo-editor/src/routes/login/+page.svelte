@@ -18,7 +18,7 @@
                         <input bind:value={email} type="email" name="email" placeholder="name@email.ch" class="input" required />
                     </label>
                     <label>
-                        Password
+                        Passwort
                         <input bind:value={password} type="password" name="password" class="input" placeholder="top-secret" required />
                     </label>
                     <button type="submit" class="button button-primary">Login</button>
