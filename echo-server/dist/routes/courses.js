@@ -37,6 +37,13 @@ module.exports = function (fastify, opts) {
             return reply.code(200).send([]);
         }));
         // @ts-ignore
+        fastify.get('/courses/:id', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
+            const user = req.user;
+            const { id } = req.params;
+            const course = yield database_service_1.DB.courses.one.byId(id, user, db);
+            return reply.send(course);
+        }));
+        // @ts-ignore
         fastify.post('/courses', { onRequest: [fastify.userHasAnyRole([types_1.UserRole.TEACHER, types_1.UserRole.ADMIN])] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
             const user = req.user;
             const body = yield JSON.parse(req.body);
@@ -50,9 +57,7 @@ module.exports = function (fastify, opts) {
         // @ts-ignore
         fastify.patch('/courses/:id', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
             const user = req.user;
-            const { name, description, hidden } = req.body;
-            if (!name)
-                return reply.code(400).send({ error: "Missing required fields: 'name'" });
+            // TODO
         }));
     });
 };

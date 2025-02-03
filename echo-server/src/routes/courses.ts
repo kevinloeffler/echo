@@ -33,6 +33,16 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
             return reply.code(200).send([])
     })
 
+    // @ts-ignore
+    fastify.get('/courses/:id', { onRequest: [fastify.authenticate] },
+        async (req: FastifyRequest, reply: FastifyReply) => {
+            const user = req.user as User
+            const { id } = req.params
+
+            const course = await DB.courses.one.byId(id, user, db)
+            return reply.send(course)
+        })
+
 
     // @ts-ignore
     fastify.post('/courses', { onRequest: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
@@ -50,9 +60,7 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
     fastify.patch('/courses/:id', { onRequest: [fastify.authenticate] },
         async (req: FastifyRequest, reply: FastifyReply) => {
             const user = req.user as User
-            const { name, description, hidden } = req.body as any
-            if (!name) return reply.code(400).send({ error: "Missing required fields: 'name'" })
-
+            // TODO
         })
 
 }

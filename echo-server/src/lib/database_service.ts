@@ -223,6 +223,35 @@ export const DB = {
             }
         },
 
+        one: {
+
+            async byId(id: number, user: User, db: Postgres): Promise<Optional<Course>> {
+                const preQuery = `
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM "CourseTeachers"
+                        WHERE course_id = $1 AND teacher_id = $2
+                    ) AS is_allowed;
+                `
+                const preParams = [id, user.id]
+                const check = await db.query(preQuery, preParams)
+                if (!check.rows) return
+
+                const query = `SELECT * FROM "Courses" WHERE id = $1`
+                const params = [id]
+                const { rows } = await db.query(query, params)
+                return rows[0]
+            },
+
+            async byTitle(title: string, db: Postgres): Promise<Optional<Course[]>> {
+                const query = `SELECT * FROM "Courses" WHERE name = $1`
+                const params = [title]
+                const { rows } = await db.query(query, params)
+                return rows
+            },
+
+        },
+
         async new(name: string, description: string, userId: string, hidden=false, archived=false, db: Postgres): Promise<Optional<any>> {
             const query = `
                     WITH inserted_course AS (

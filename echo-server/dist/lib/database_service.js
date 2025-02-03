@@ -243,6 +243,35 @@ exports.DB = {
                 });
             }
         },
+        one: {
+            byId(id, user, db) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const preQuery = `
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM "CourseTeachers"
+                        WHERE course_id = $1 AND teacher_id = $2
+                    ) AS is_allowed;
+                `;
+                    const preParams = [id, user.id];
+                    const check = yield db.query(preQuery, preParams);
+                    if (!check.rows)
+                        return;
+                    const query = `SELECT * FROM "Courses" WHERE id = $1`;
+                    const params = [id];
+                    const { rows } = yield db.query(query, params);
+                    return rows[0];
+                });
+            },
+            byTitle(title, db) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const query = `SELECT * FROM "Courses" WHERE name = $1`;
+                    const params = [title];
+                    const { rows } = yield db.query(query, params);
+                    return rows;
+                });
+            },
+        },
         new(name_1, description_1, userId_1) {
             return __awaiter(this, arguments, void 0, function* (name, description, userId, hidden = false, archived = false, db) {
                 const query = `
