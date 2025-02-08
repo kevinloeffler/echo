@@ -9,7 +9,7 @@ module.exports = {
 
   development: {
     client: 'pg',
-    connection: process.env.DATABASE_URL, // process.env.KNEX_URL,
+    connection: process.env.KNEX_URL, // process.env.KNEX_URL,
     migrations: {
       directory: './data/migrations',
     },
@@ -18,7 +18,7 @@ module.exports = {
 
   testing: {
     client: 'pg',
-    connection: process.env.DATABASE_URL,
+    connection: process.env.KNEX_URL,
     migrations: {
       directory: './data/migrations',
     },
@@ -27,7 +27,7 @@ module.exports = {
 
   production: {
     client: 'pg',
-    connection: process.env.DATABASE_URL,
+    connection: process.env.KNEX_URL,
     migrations: {
       directory: './data/migrations',
     },
