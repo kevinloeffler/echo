@@ -24,6 +24,12 @@
                     <button type="submit" class="button button-primary">Login</button>
                 </form>
 
+                {#if showErrorMessage}
+                    <div class="error-message">
+                        Ungültiges Login
+                    </div>
+                {/if}
+
             </div>
 
             <div class="register division">
@@ -48,6 +54,8 @@
     let email = $state('')
     let password = $state('')
 
+    let showErrorMessage = $state(false)
+
     async function handleSubmit(event: Event) {
         event.preventDefault()
         const form: Optional<HTMLFormElement> = event.target as Optional<HTMLFormElement>
@@ -62,6 +70,8 @@
             const body = await response.json()
             if (response.status === 200 && body.login) {
                 await goto('/')
+            } else {
+                showErrorMessage = true
             }
         }
     }
@@ -144,6 +154,16 @@
         font-size: 11px;
         color: var(--text);
         text-decoration: none;
+    }
+
+    .error-message {
+        width: 100%;
+        text-align: center;
+        padding: 8px;
+        border: 2px solid #ff4141;
+        border-radius: 8px;
+        color: #ff4141;
+        background-color: rgba(255, 65, 65, 0.05);
     }
 
 </style>
