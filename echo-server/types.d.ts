@@ -14,14 +14,15 @@ type User = {
 }
 
 type Course = {
-    id: string,
+    id?: string,
     name: string,
-    children: ChapterOrLesson[],
-    creator: User,
-    // createdAt: Date,
-    students: User[],
+    description: string,
     hidden: boolean,
     archived: boolean,
+
+    students: User[],
+    content: ChapterOrLesson[],
+    teacher: User,
 }
 
 type ChapterOrLesson = Chapter | Lesson

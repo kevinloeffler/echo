@@ -10,9 +10,7 @@ type PythonOutput = {
 
 type UserRoles = 'Admin'| 'Teacher' | 'Student'
 
-type User = {
-
-}
+type User = {}
 
 type Chapter = {}
 
@@ -28,4 +26,12 @@ type Course = {
     students: User[],
     content: Chapter[] | Lesson[],
     teacher: User,
+}
+
+type CourseContent = {
+    id: number,
+    name: string,
+    description: string,
+    type: 'chapter' | 'lesson',
+    content: CourseContent[],
 }
