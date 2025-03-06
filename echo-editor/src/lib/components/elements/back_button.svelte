@@ -1,4 +1,4 @@
-<a href={link}>
+<a href={link || 'javascript:history.back()'}>
     <img src="/images/arrow-back.svg" alt="Pfeil Zurück">
     {text}
 </a>
@@ -6,7 +6,7 @@
 
 <script lang="ts">
 
-    let { link, text = 'Zurück' } = $props()
+    let { link = null, text = 'Zurück' } = $props()
 
 </script>
 
