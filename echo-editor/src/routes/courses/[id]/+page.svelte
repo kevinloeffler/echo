@@ -47,8 +47,9 @@
 
             <h1>Inhalt</h1>
 
-            <CourseContentList bind:data={courseContents} />
-
+            {#if course}
+                <CourseContentList bind:data={course.content} courseId={id} refreshData={async () => course = await loadCourse(id)} />
+            {/if}
         </div>
 
     </div>
@@ -72,9 +73,9 @@
 
     let { data } = $props()
     let id = data.id
-    let courseContents = $state([])
 
     let course = $state<Optional<Course>>()
+
     $inspect('course:', course)
 
     let isVisible = $state()
@@ -83,7 +84,6 @@
 
     onMount(async () => {
         course = await loadCourse(id)
-        courseContents = [...course.content]
     })
 
     async function loadCourse(id: string): Promise<Course> {
@@ -96,6 +96,7 @@
         }
         return await res.json()
     }
+
 
 </script>
 

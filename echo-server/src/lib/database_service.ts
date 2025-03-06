@@ -234,12 +234,6 @@ export const DB = {
                 const check = await db.query(preQuery, preParams)
                 if (!check.rows) return
 
-                // Get course
-                // const query = `SELECT * FROM "Courses" WHERE id = $1`
-                // const params = [id]
-                // const { rows } = await db.query(query, params)
-                // return rows[0]
-
                 const query = `
                     WITH RECURSIVE content_tree AS (
                         -- Base case: Get all top-level chapters (parent_id IS NULL)
@@ -284,7 +278,7 @@ export const DB = {
                 const result = await db.query(query, values)
                 const content = result.rows
 
-                return buildHierarchy(content)
+                return buildCourse(content)
             },
 
             async byTitle(title: string, db: Postgres): Promise<Optional<Course[]>> {
@@ -316,31 +310,186 @@ export const DB = {
         }
     },
 
+    CourseContent: {
+
+        async new(courseId: number, parentId: number | null, index: number, type: 'chapter' | 'lesson', name: string, db:Postgres) {
+            parentId = (parentId && parentId > 0) ? parentId : null
+            // Get next element
+            let getNextId: string
+            let parameters: any[]
+            if (!parentId) {
+                getNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id IS NULL
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $1;
+                `
+                parameters = [index]
+            } else {
+                getNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id = $1
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $2;
+                `
+                parameters = [parentId, index]
+            }
+
+            const nextIdRes = await db.query(getNextId, parameters)
+            let nextId = nextIdRes.rows.length > 0 ? nextIdRes.rows[0].id : null
+
+            // update previous element
+            let futurePreviousId
+            if (index > 0) {
+                const getPreviousId = `
+                    SELECT id FROM "CourseContent"
+                    ${parentId ? 'WHERE parent_id = $2' : 'WHERE parent_id IS NULL'}
+                    ORDER BY next_id NULLS LAST
+                    LIMIT 1 OFFSET $1;
+                `
+                const params = parentId ? [index - 1, parentId] : [index - 1]
+                const getFuturePreviousIdRes = await db.query(getPreviousId, params)
+                futurePreviousId = getFuturePreviousIdRes.rows.length > 0 ? getFuturePreviousIdRes.rows[0].id : null
+            } else {
+                futurePreviousId = null
+            }
+
+            const query = `INSERT INTO "CourseContent" (course_id, parent_id, next_id, type, name) VALUES ($1, $2, $3, $4, $5) RETURNING id;`
+            const values = [courseId, parentId || null, nextId || null, type, name]
+            const { rows } = await db.query(query, values)
+            const id = rows[0].id
+
+            // update the new previous sibling with the inserted element as the next_id
+            const updateFuturePrevious = `
+                UPDATE "CourseContent"
+                SET next_id = $1
+                WHERE id = $2;
+            `
+            await db.query(updateFuturePrevious, [id, futurePreviousId])
+
+            return id
+        },
+
+        async moveCourseContent(id: number, parentId: number, index: number, user: User, db: Postgres) {
+
+            // Special case: Move to top level
+            const newParentId = parentId === -1 ? null : parentId
+
+            // STEP 1: Remove from old position
+
+            const getOldPreviousId = `
+                SELECT id
+                FROM "CourseContent"
+                WHERE next_id = $1
+            `
+            const oldPreviousId = (await db.query(getOldPreviousId, [id])).rows[0]?.id || null
+
+            const getOldNextId = `SELECT next_id
+                                  FROM "CourseContent"
+                                  WHERE id = $1`
+            const oldNextId = (await db.query(getOldNextId, [id])).rows[0]?.next_id || null
+
+            // unlink from old place: set next_id from previous element to the target elements next_id
+            const unlink = `UPDATE "CourseContent"
+                            SET next_id = $1
+                            WHERE id = $2`
+            await db.query(unlink, [oldNextId, oldPreviousId])
+
+            // STEP 2: Insert into new position
+
+            let getFutureNextId: string
+            let parameters: any[]
+            if (parentId === -1) {
+                getFutureNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id IS NULL
+                    AND id != $1
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $2;
+                `
+                parameters = [id, index]
+            } else {
+                getFutureNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id = $1
+                    AND id != $2  -- ignore itself
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $3;
+                `
+                parameters = [newParentId, id, index]
+            }
+
+            const getFutureNextIdRes = await db.query(getFutureNextId, parameters)
+            let futureNextId = getFutureNextIdRes.rows.length > 0 ? getFutureNextIdRes.rows[0].id : null
+
+            if (futureNextId === id) futureNextId = oldNextId  // move operation could be stopped here
+
+            // get the previous element at the new position
+            let futurePreviousId
+            if (index > 0) {
+                const getFuturePreviousId = `
+                    SELECT id FROM "CourseContent"
+                    ${(parentId > 0) ? 'WHERE parent_id = $3' : 'WHERE parent_id IS NULL'}
+                    AND id != $1  -- ignore itself
+                    ORDER BY next_id NULLS LAST
+                    LIMIT 1 OFFSET $2;
+                `
+                const params = (parentId > 0) ? [id, index - 1, newParentId] : [id, index - 1]
+                const getFuturePreviousIdRes = await db.query(getFuturePreviousId, params)
+                futurePreviousId = getFuturePreviousIdRes.rows.length > 0 ? getFuturePreviousIdRes.rows[0].id : null
+            } else {
+                futurePreviousId = null
+            }
+
+            // update the new previous sibling with the inserted element as the next_id
+            const updateFuturePrevious = `
+                UPDATE "CourseContent"
+                SET next_id = $1
+                WHERE id = $2;
+            `
+            await db.query(updateFuturePrevious, [id, futurePreviousId])
+
+            // insert new content
+            const updateTarget = `
+                UPDATE "CourseContent"
+                SET parent_id = $1, next_id = $2
+                WHERE id = $3;
+            `
+            await db.query(updateTarget, [newParentId, futureNextId, id])
+
+        }
+
+    }
+
 }
 
 
 /***** HELPER FUNCTIONS *****/
 
-function buildCourseHierarchy(items: any): Course[] {
-    const coursesMap = new Map()
+/**
+ * Builds a single course with its hierarchical content.
+ */
+function buildCourse(items: any[]): Optional<Course> {
+    if (items.length === 0) return undefined;
 
-    // Initialize courses
-    items.forEach((item: any) => {
-        if (!coursesMap.has(item.course_id)) {
-            coursesMap.set(item.course_id, {
-                id: item.course_id,
-                name: item.course_name,
-                description: item.course_description,
-                hidden: item.course_hidden,
-                archived: item.course_archived,
-                content: []
-            })
-        }
-    })
+    const contentMap = new Map();
+    const nextMap = new Map(); // Stores next_id references
+    const parentMap = new Map(); // Stores parent-child relationships
 
-    // Build nested content for each course
-    const contentMap = new Map()
+    // Extract course attributes
+    const course = {
+        id: items[0].course_id,
+        name: items[0].course_name,
+        description: items[0].course_description,
+        hidden: items[0].course_hidden,
+        archived: items[0].course_archived
+    };
 
+    // Initialize maps
     items.forEach((item: any) => {
         contentMap.set(item.id, {
             id: item.id,
@@ -348,60 +497,66 @@ function buildCourseHierarchy(items: any): Course[] {
             name: item.name,
             description: item.description,
             content: []
-        })
-    })
+        });
 
-    // Construct hierarchical structure
-    items.forEach((item: any) => {
-        if (item.parent_id) {
-            contentMap.get(item.parent_id).content.push(contentMap.get(item.id))
-        } else {
-            coursesMap.get(item.course_id).content.push(contentMap.get(item.id))
+        if (item.next_id) {
+            nextMap.set(item.id, item.next_id);
         }
+
+        if (!parentMap.has(item.parent_id)) {
+            parentMap.set(item.parent_id, []);
+        }
+        parentMap.get(item.parent_id).push(item.id);
     });
 
-    return Array.from(coursesMap.values())
-}
+    /**
+     * Recursively builds the sorted content tree.
+     */
+    function getSortedChildren(parentId: number | null): any[] {
+        const children = parentMap.get(parentId) || []
+        if (children.length === 0) return []
 
-function buildHierarchy(items: any): Optional<Course> {
-    const map = new Map()
-    const root: any[] = []
+        const sortedChildren: any[] = []
+        const firstChild = children.find((id: number) => ![...nextMap.values()].includes(id)) // Find starting node
 
-    // Extract course attributes (only once, since all rows contain the same course info)
-    const course = items.length > 0 ? {
-        id: items[0].course_id,
-        name: items[0].course_name,
-        description: items[0].course_description,
-        hidden: items[0].course_hidden,
-        archived: items[0].course_archived
-    } : null
-
-    // Initialize map
-    items.forEach((item: any) => {
-        map.set(item.id, {
-            id: item.id,
-            type: item.type,
-            name: item.name,
-            description: item.description,
-            content: []
-        })
-    })
-
-    // Construct tree
-    items.forEach((item: any) => {
-        if (item.parent_id) {
-            map.get(item.parent_id).content.push(map.get(item.id));
-        } else {
-            root.push(map.get(item.id)) // Top-level chapters
+        let currentId = firstChild
+        while (currentId !== undefined) {
+            const node = contentMap.get(currentId)
+            if (node) {
+                node.content = getSortedChildren(node.id) // Recursively build children
+                sortedChildren.push(node)
+            }
+            currentId = nextMap.get(currentId) // Move to next in order
         }
-    })
 
-    const result = course ? { ...course, content: root } : undefined
-    console.log('COURSE RESULT:', result)
+        return sortedChildren
+    }
 
-    return result
+    // Build the tree structure
+    const rootContent = getSortedChildren(null)
+
+    //@ts-ignore
+    return { ...course, content: rootContent }
 }
 
+/**
+ * Builds an array of courses from a flat list of items.
+ */
+function buildCourseHierarchy(items: any[]): Course[] {
+    const coursesMap = new Map<number, any[]>()
+
+    // Group items by course_id
+    items.forEach((item) => {
+        if (!coursesMap.has(item.course_id)) {
+            coursesMap.set(item.course_id, [])
+        }
+        // @ts-ignore
+        coursesMap.get(item.course_id).push(item)
+    });
+
+    // Convert grouped data into structured courses
+    return Array.from(coursesMap.values()).map((courseItems) => buildCourse(courseItems)!);
+}
 
 /***** ERRORS *****/
 

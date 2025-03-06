@@ -253,11 +253,6 @@ exports.DB = {
                     const check = yield db.query(preQuery, preParams);
                     if (!check.rows)
                         return;
-                    // Get course
-                    // const query = `SELECT * FROM "Courses" WHERE id = $1`
-                    // const params = [id]
-                    // const { rows } = await db.query(query, params)
-                    // return rows[0]
                     const query = `
                     WITH RECURSIVE content_tree AS (
                         -- Base case: Get all top-level chapters (parent_id IS NULL)
@@ -300,7 +295,7 @@ exports.DB = {
                     const values = [id];
                     const result = yield db.query(query, values);
                     const content = result.rows;
-                    return buildHierarchy(content);
+                    return buildCourse(content);
                 });
             },
             byTitle(title, db) {
@@ -334,25 +329,169 @@ exports.DB = {
             });
         }
     },
-};
-/***** HELPER FUNCTIONS *****/
-function buildCourseHierarchy(items) {
-    const coursesMap = new Map();
-    // Initialize courses
-    items.forEach((item) => {
-        if (!coursesMap.has(item.course_id)) {
-            coursesMap.set(item.course_id, {
-                id: item.course_id,
-                name: item.course_name,
-                description: item.course_description,
-                hidden: item.course_hidden,
-                archived: item.course_archived,
-                content: []
+    CourseContent: {
+        new(courseId, parentId, index, type, name, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                parentId = (parentId && parentId > 0) ? parentId : null;
+                // Get next element
+                let getNextId;
+                let parameters;
+                if (!parentId) {
+                    getNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id IS NULL
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $1;
+                `;
+                    parameters = [index];
+                }
+                else {
+                    getNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id = $1
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $2;
+                `;
+                    parameters = [parentId, index];
+                }
+                const nextIdRes = yield db.query(getNextId, parameters);
+                let nextId = nextIdRes.rows.length > 0 ? nextIdRes.rows[0].id : null;
+                // update previous element
+                let futurePreviousId;
+                if (index > 0) {
+                    const getPreviousId = `
+                    SELECT id FROM "CourseContent"
+                    ${parentId ? 'WHERE parent_id = $2' : 'WHERE parent_id IS NULL'}
+                    ORDER BY next_id NULLS LAST
+                    LIMIT 1 OFFSET $1;
+                `;
+                    const params = parentId ? [index - 1, parentId] : [index - 1];
+                    const getFuturePreviousIdRes = yield db.query(getPreviousId, params);
+                    futurePreviousId = getFuturePreviousIdRes.rows.length > 0 ? getFuturePreviousIdRes.rows[0].id : null;
+                }
+                else {
+                    futurePreviousId = null;
+                }
+                const query = `INSERT INTO "CourseContent" (course_id, parent_id, next_id, type, name) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                const values = [courseId, parentId || null, nextId || null, type, name];
+                const { rows } = yield db.query(query, values);
+                const id = rows[0].id;
+                // update the new previous sibling with the inserted element as the next_id
+                const updateFuturePrevious = `
+                UPDATE "CourseContent"
+                SET next_id = $1
+                WHERE id = $2;
+            `;
+                yield db.query(updateFuturePrevious, [id, futurePreviousId]);
+                return id;
+            });
+        },
+        moveCourseContent(id, parentId, index, user, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var _a, _b;
+                // Special case: Move to top level
+                const newParentId = parentId === -1 ? null : parentId;
+                // STEP 1: Remove from old position
+                const getOldPreviousId = `
+                SELECT id
+                FROM "CourseContent"
+                WHERE next_id = $1
+            `;
+                const oldPreviousId = ((_a = (yield db.query(getOldPreviousId, [id])).rows[0]) === null || _a === void 0 ? void 0 : _a.id) || null;
+                const getOldNextId = `SELECT next_id
+                                  FROM "CourseContent"
+                                  WHERE id = $1`;
+                const oldNextId = ((_b = (yield db.query(getOldNextId, [id])).rows[0]) === null || _b === void 0 ? void 0 : _b.next_id) || null;
+                // unlink from old place: set next_id from previous element to the target elements next_id
+                const unlink = `UPDATE "CourseContent"
+                            SET next_id = $1
+                            WHERE id = $2`;
+                yield db.query(unlink, [oldNextId, oldPreviousId]);
+                // STEP 2: Insert into new position
+                let getFutureNextId;
+                let parameters;
+                if (parentId === -1) {
+                    getFutureNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id IS NULL
+                    AND id != $1
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $2;
+                `;
+                    parameters = [id, index];
+                }
+                else {
+                    getFutureNextId = `
+                    SELECT id
+                    FROM "CourseContent"
+                    WHERE parent_id = $1
+                    AND id != $2  -- ignore itself
+                    ORDER BY next_id NULLS LAST LIMIT 1
+                    OFFSET $3;
+                `;
+                    parameters = [newParentId, id, index];
+                }
+                const getFutureNextIdRes = yield db.query(getFutureNextId, parameters);
+                let futureNextId = getFutureNextIdRes.rows.length > 0 ? getFutureNextIdRes.rows[0].id : null;
+                if (futureNextId === id)
+                    futureNextId = oldNextId; // move operation could be stopped here
+                // get the previous element at the new position
+                let futurePreviousId;
+                if (index > 0) {
+                    const getFuturePreviousId = `
+                    SELECT id FROM "CourseContent"
+                    ${(parentId > 0) ? 'WHERE parent_id = $3' : 'WHERE parent_id IS NULL'}
+                    AND id != $1  -- ignore itself
+                    ORDER BY next_id NULLS LAST
+                    LIMIT 1 OFFSET $2;
+                `;
+                    const params = (parentId > 0) ? [id, index - 1, newParentId] : [id, index - 1];
+                    const getFuturePreviousIdRes = yield db.query(getFuturePreviousId, params);
+                    futurePreviousId = getFuturePreviousIdRes.rows.length > 0 ? getFuturePreviousIdRes.rows[0].id : null;
+                }
+                else {
+                    futurePreviousId = null;
+                }
+                // update the new previous sibling with the inserted element as the next_id
+                const updateFuturePrevious = `
+                UPDATE "CourseContent"
+                SET next_id = $1
+                WHERE id = $2;
+            `;
+                yield db.query(updateFuturePrevious, [id, futurePreviousId]);
+                // insert new content
+                const updateTarget = `
+                UPDATE "CourseContent"
+                SET parent_id = $1, next_id = $2
+                WHERE id = $3;
+            `;
+                yield db.query(updateTarget, [newParentId, futureNextId, id]);
             });
         }
-    });
-    // Build nested content for each course
+    }
+};
+/***** HELPER FUNCTIONS *****/
+/**
+ * Builds a single course with its hierarchical content.
+ */
+function buildCourse(items) {
+    if (items.length === 0)
+        return undefined;
     const contentMap = new Map();
+    const nextMap = new Map(); // Stores next_id references
+    const parentMap = new Map(); // Stores parent-child relationships
+    // Extract course attributes
+    const course = {
+        id: items[0].course_id,
+        name: items[0].course_name,
+        description: items[0].course_description,
+        hidden: items[0].course_hidden,
+        archived: items[0].course_archived
+    };
+    // Initialize maps
     items.forEach((item) => {
         contentMap.set(item.id, {
             id: item.id,
@@ -361,51 +500,54 @@ function buildCourseHierarchy(items) {
             description: item.description,
             content: []
         });
-    });
-    // Construct hierarchical structure
-    items.forEach((item) => {
-        if (item.parent_id) {
-            contentMap.get(item.parent_id).content.push(contentMap.get(item.id));
+        if (item.next_id) {
+            nextMap.set(item.id, item.next_id);
         }
-        else {
-            coursesMap.get(item.course_id).content.push(contentMap.get(item.id));
+        if (!parentMap.has(item.parent_id)) {
+            parentMap.set(item.parent_id, []);
         }
+        parentMap.get(item.parent_id).push(item.id);
     });
-    return Array.from(coursesMap.values());
+    /**
+     * Recursively builds the sorted content tree.
+     */
+    function getSortedChildren(parentId) {
+        const children = parentMap.get(parentId) || [];
+        if (children.length === 0)
+            return [];
+        const sortedChildren = [];
+        const firstChild = children.find((id) => ![...nextMap.values()].includes(id)); // Find starting node
+        let currentId = firstChild;
+        while (currentId !== undefined) {
+            const node = contentMap.get(currentId);
+            if (node) {
+                node.content = getSortedChildren(node.id); // Recursively build children
+                sortedChildren.push(node);
+            }
+            currentId = nextMap.get(currentId); // Move to next in order
+        }
+        return sortedChildren;
+    }
+    // Build the tree structure
+    const rootContent = getSortedChildren(null);
+    //@ts-ignore
+    return Object.assign(Object.assign({}, course), { content: rootContent });
 }
-function buildHierarchy(items) {
-    const map = new Map();
-    const root = [];
-    // Extract course attributes (only once, since all rows contain the same course info)
-    const course = items.length > 0 ? {
-        id: items[0].course_id,
-        name: items[0].course_name,
-        description: items[0].course_description,
-        hidden: items[0].course_hidden,
-        archived: items[0].course_archived
-    } : null;
-    // Initialize map
+/**
+ * Builds an array of courses from a flat list of items.
+ */
+function buildCourseHierarchy(items) {
+    const coursesMap = new Map();
+    // Group items by course_id
     items.forEach((item) => {
-        map.set(item.id, {
-            id: item.id,
-            type: item.type,
-            name: item.name,
-            description: item.description,
-            content: []
-        });
-    });
-    // Construct tree
-    items.forEach((item) => {
-        if (item.parent_id) {
-            map.get(item.parent_id).content.push(map.get(item.id));
+        if (!coursesMap.has(item.course_id)) {
+            coursesMap.set(item.course_id, []);
         }
-        else {
-            root.push(map.get(item.id)); // Top-level chapters
-        }
+        // @ts-ignore
+        coursesMap.get(item.course_id).push(item);
     });
-    const result = course ? Object.assign(Object.assign({}, course), { content: root }) : undefined;
-    console.log('COURSE RESULT:', result);
-    return result;
+    // Convert grouped data into structured courses
+    return Array.from(coursesMap.values()).map((courseItems) => buildCourse(courseItems));
 }
 /***** ERRORS *****/
 class RecordNotFound extends Error {
