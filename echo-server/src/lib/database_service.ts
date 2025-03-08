@@ -493,8 +493,8 @@ function buildCourse(items: any[]): Optional<Course> {
         contentMap.set(item.id, {
             id: item.id,
             type: item.type,
-            name: item.name,
-            description: item.description,
+            name: item.content_name,
+            description: item.content_description,
             content: []
         });
 
