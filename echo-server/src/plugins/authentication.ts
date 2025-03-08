@@ -14,6 +14,8 @@ module.exports = fp(async function(fastify: FastifyInstance, opts: any) {
     })
 
     fastify.decorate("authenticate", async function(request: FastifyRequest, reply: FastifyReply) {
+        console.log('request.cookies:', request.cookies)
+
         try {
             await request.jwtVerify()
         } catch (err: any) {

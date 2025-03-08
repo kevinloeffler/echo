@@ -126,95 +126,93 @@ export const DB = {
 
             async byTeacher(teacherId: string, db: Postgres): Promise<Optional<Course[]>> {
                 const query = `
-                    WITH RECURSIVE content_tree AS (
-                        -- Base case: Get all top-level chapters (parent_id IS NULL) for teacher's courses
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+                    -- Get all courses the teacher teaches
+                    WITH RECURSIVE teacher_courses AS (
+                        SELECT 
+                            c.id AS course_id, 
+                            c.name AS course_name, 
+                            c.description AS course_description,
+                            c.hidden AS course_hidden, 
+                            c.archived AS course_archived
+                        FROM "Courses" c
+                        WHERE c.id IN (SELECT course_id FROM "CourseTeachers" WHERE teacher_id = $1)
+                    ),
+            
+                    content_tree AS (
+                        -- Base case: Get all top-level content (parent_id IS NULL)
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description
                         FROM "CourseContent" cc
-                        WHERE cc.parent_id IS NULL
-                          AND cc.course_id IN (SELECT course_id FROM "CourseTeachers" WHERE teacher_id = $1)
-
+                        WHERE cc.parent_id IS NULL 
+                          AND cc.course_id IN (SELECT course_id FROM teacher_courses)
+            
                         UNION ALL
-
-                        -- Recursive case: Get content of previous level
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+            
+                        -- Recursive case: Get children content
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description
                         FROM "CourseContent" cc
-                                 INNER JOIN content_tree ct ON cc.parent_id = ct.id
+                        INNER JOIN content_tree ct ON cc.parent_id = ct.id
                     )
-                    SELECT
-                        c.id AS course_id,
-                        c.name AS course_name,
-                        c.description AS course_description,
-                        c.hidden AS course_hidden,
-                        c.archived AS course_archived,
-                        ct.*
-                    FROM content_tree ct
-                             JOIN "Courses" c ON ct.course_id = c.id
-                    WHERE c.id IN (SELECT course_id FROM "CourseTeachers" WHERE teacher_id = $1)
-                    ORDER BY c.id, ct.parent_id NULLS FIRST, ct.next_id;
+            
+                    -- Join all courses (even those without content) with content_tree
+                    SELECT 
+                        tc.course_id, tc.course_name, tc.course_description, tc.course_hidden, tc.course_archived,
+                        ct.id, ct.parent_id, ct.next_id, ct.type, ct.name AS content_name, ct.description AS content_description
+                    FROM teacher_courses tc
+                    LEFT JOIN content_tree ct ON tc.course_id = ct.course_id
+                    ORDER BY tc.course_id, ct.parent_id NULLS FIRST, ct.next_id;
                 `
-                const params = [teacherId]
-                const { rows } = await db.query(query, params)
-                return buildCourseHierarchy(rows)
+
+                const params = [teacherId];
+                const { rows } = await db.query(query, params);
+
+                return buildCourseHierarchy(rows);
             },
 
             async byStudent(studentId: string, db: Postgres): Promise<Optional<Course[]>> {
                 const query = `
-                    WITH RECURSIVE content_tree AS (
-                        -- Base case: Get all top-level chapters (parent_id IS NULL) for student's courses
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+                    -- Get all courses the student is enrolled in
+                    WITH RECURSIVE student_courses AS (
+                        SELECT 
+                            c.id AS course_id, 
+                            c.name AS course_name, 
+                            c.description AS course_description,
+                            c.hidden AS course_hidden, 
+                            c.archived AS course_archived
+                        FROM "Courses" c
+                        WHERE c.id IN (SELECT course_id FROM "CourseStudents" WHERE student_id = $1)
+                    ),
+            
+                    content_tree AS (
+                        -- Base case: Get all top-level course content (parent_id IS NULL)
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description, 1 AS depth
                         FROM "CourseContent" cc
-                        WHERE cc.parent_id IS NULL
-                          AND cc.course_id IN (SELECT course_id FROM "CourseStudents" WHERE student_id = $1)
-
+                        WHERE cc.parent_id IS NULL 
+                          AND cc.course_id IN (SELECT course_id FROM student_courses)
+            
                         UNION ALL
-
-                        -- Recursive case: Get content of previous level
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+            
+                        -- Recursive case: Get nested content, preventing infinite loops
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description, ct.depth + 1
                         FROM "CourseContent" cc
-                                 INNER JOIN content_tree ct ON cc.parent_id = ct.id
+                        INNER JOIN content_tree ct ON cc.parent_id = ct.id
+                        WHERE ct.depth < 20  -- Prevents infinite recursion
                     )
-                    SELECT
-                        c.id AS course_id,
-                        c.name AS course_name,
-                        c.description AS course_description,
-                        c.hidden AS course_hidden,
-                        c.archived AS course_archived,
-                        ct.*
-                    FROM content_tree ct
-                             JOIN "Courses" c ON ct.course_id = c.id
-                    WHERE c.id IN (SELECT course_id FROM "CourseStudents" WHERE student_id = $1)
-                    ORDER BY c.id, ct.parent_id NULLS FIRST, ct.next_id;
+            
+                    -- Join all student courses (even if they have no content) with content_tree
+                    SELECT 
+                        sc.course_id, sc.course_name, sc.course_description, sc.course_hidden, sc.course_archived,
+                        ct.id, ct.parent_id, ct.next_id, ct.type, ct.name AS content_name, ct.description AS content_description
+                    FROM student_courses sc
+                    LEFT JOIN content_tree ct ON sc.course_id = ct.course_id
+                    ORDER BY sc.course_id, ct.parent_id NULLS FIRST, ct.next_id;
                 `
-                const params = [studentId]
-                const { rows } = await db.query(query, params)
+
+                const params = [studentId];
+                const { rows } = await db.query(query, params);
                 return buildCourseHierarchy(rows)
             }
         },
@@ -230,47 +228,47 @@ export const DB = {
                         WHERE course_id = $1 AND teacher_id = $2
                     ) AS is_allowed;
                 `
+
                 const preParams = [id, user.id]
                 const check = await db.query(preQuery, preParams)
                 if (!check.rows) return
 
                 const query = `
-                    WITH RECURSIVE content_tree AS (
-                        -- Base case: Get all top-level chapters (parent_id IS NULL)
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+                    -- Ensure we always fetch the course details
+                    WITH RECURSIVE course_info AS (
+                        SELECT 
+                            c.id AS course_id, 
+                            c.name AS course_name, 
+                            c.description AS course_description,
+                            c.hidden AS course_hidden, 
+                            c.archived AS course_archived
+                        FROM "Courses" c
+                        WHERE c.id = $1
+                    ),
+            
+                    content_tree AS (
+                        -- Base case: Get all top-level content (parent_id IS NULL)
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description, 1 AS depth
                         FROM "CourseContent" cc
-                        WHERE cc.course_id = $1 AND cc.parent_id IS NULL
-
+                        WHERE cc.parent_id IS NULL AND cc.course_id = $1
+            
                         UNION ALL
-
-                        -- Recursive case: Get content of previous level
-                        SELECT
-                            cc.id,
-                            cc.course_id,
-                            cc.parent_id,
-                            cc.next_id,
-                            cc.type,
-                            cc.name,
-                            cc.description
+            
+                        -- Recursive case: Get nested content, preventing infinite loops
+                        SELECT 
+                            cc.id, cc.course_id, cc.parent_id, cc.next_id, cc.type, cc.name, cc.description, ct.depth + 1
                         FROM "CourseContent" cc
-                                 INNER JOIN content_tree ct ON cc.parent_id = ct.id
+                        INNER JOIN content_tree ct ON cc.parent_id = ct.id
+                        WHERE ct.depth < 20 -- Prevent infinite recursion
                     )
-                    SELECT
-                        c.id AS course_id,
-                        c.name AS course_name,
-                        c.description AS course_description,
-                        c.hidden AS course_hidden,
-                        c.archived AS course_archived,
-                        ct.*
-                    FROM content_tree ct
-                             JOIN "Courses" c ON ct.course_id = c.id
+            
+                    -- Join the course with its content (even if no content exists)
+                    SELECT 
+                        ci.course_id, ci.course_name, ci.course_description, ci.course_hidden, ci.course_archived,
+                        ct.id, ct.parent_id, ct.next_id, ct.type, ct.name AS content_name, ct.description AS content_description
+                    FROM course_info ci
+                    LEFT JOIN content_tree ct ON ci.course_id = ct.course_id
                     ORDER BY ct.parent_id NULLS FIRST, ct.next_id;
                 `
 
@@ -474,11 +472,10 @@ export const DB = {
  * Builds a single course with its hierarchical content.
  */
 function buildCourse(items: any[]): Optional<Course> {
-    if (items.length === 0) return undefined;
-
     const contentMap = new Map();
     const nextMap = new Map(); // Stores next_id references
     const parentMap = new Map(); // Stores parent-child relationships
+    const visited = new Set(); // Prevents infinite loops
 
     // Extract course attributes
     const course = {
@@ -487,7 +484,9 @@ function buildCourse(items: any[]): Optional<Course> {
         description: items[0].course_description,
         hidden: items[0].course_hidden,
         archived: items[0].course_archived
-    };
+    }
+
+    if (items.length === 1) return { ...course, content: [] }
 
     // Initialize maps
     items.forEach((item: any) => {
@@ -513,45 +512,44 @@ function buildCourse(items: any[]): Optional<Course> {
      * Recursively builds the sorted content tree.
      */
     function getSortedChildren(parentId: number | null): any[] {
-        const children = parentMap.get(parentId) || []
-        if (children.length === 0) return []
+        const children = parentMap.get(parentId) || [];
+        if (children.length === 0) return [];
 
-        const sortedChildren: any[] = []
-        const firstChild = children.find((id: number) => ![...nextMap.values()].includes(id)) // Find starting node
+        const sortedChildren: any[] = [];
+        let currentId = children.find((id) => ![...nextMap.values()].includes(id)); // Find starting node
 
-        let currentId = firstChild
-        while (currentId !== undefined) {
-            const node = contentMap.get(currentId)
+        while (currentId !== undefined && !visited.has(currentId)) {
+            visited.add(currentId); // Prevent infinite loops
+
+            const node = contentMap.get(currentId);
             if (node) {
-                node.content = getSortedChildren(node.id) // Recursively build children
-                sortedChildren.push(node)
+                node.content = getSortedChildren(node.id); // Recursively build children
+                sortedChildren.push(node);
             }
-            currentId = nextMap.get(currentId) // Move to next in order
+            currentId = nextMap.get(currentId); // Move to next in order
         }
 
-        return sortedChildren
+        return sortedChildren;
     }
 
     // Build the tree structure
-    const rootContent = getSortedChildren(null)
+    const rootContent = getSortedChildren(null);
 
-    //@ts-ignore
-    return { ...course, content: rootContent }
+    return { ...course, content: rootContent };
 }
 
 /**
  * Builds an array of courses from a flat list of items.
  */
 function buildCourseHierarchy(items: any[]): Course[] {
-    const coursesMap = new Map<number, any[]>()
+    const coursesMap = new Map<number, any[]>();
 
     // Group items by course_id
     items.forEach((item) => {
         if (!coursesMap.has(item.course_id)) {
-            coursesMap.set(item.course_id, [])
+            coursesMap.set(item.course_id, []);
         }
-        // @ts-ignore
-        coursesMap.get(item.course_id).push(item)
+        coursesMap.get(item.course_id).push(item);
     });
 
     // Convert grouped data into structured courses

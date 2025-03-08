@@ -27,6 +27,7 @@ module.exports = (0, fastify_plugin_1.default)(function (fastify, opts) {
         });
         fastify.decorate("authenticate", function (request, reply) {
             return __awaiter(this, void 0, void 0, function* () {
+                console.log('request.cookies:', request.cookies);
                 try {
                     yield request.jwtVerify();
                 }

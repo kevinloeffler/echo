@@ -22,6 +22,7 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
 
             if (user.role === UserRole.TEACHER) {
                 const courses = await DB.courses.all.byTeacher(user.id, db)
+                console.log('DB courses', courses)
                 return reply.send(courses)
             }
 
@@ -36,8 +37,11 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
     // @ts-ignore
     fastify.get('/courses/:id', { onRequest: [fastify.authenticate] },
         async (req: FastifyRequest, reply: FastifyReply) => {
+            console.log('running :id')
             const user = req.user as User
             const { id } = req.params
+
+            console.log('server id:', id)
 
             const course = await DB.courses.one.byId(id, user, db)
             return reply.send(course)

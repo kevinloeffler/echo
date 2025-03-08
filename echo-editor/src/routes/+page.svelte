@@ -1,39 +1,22 @@
 
-{#if !user}
+{#if !data.user}
     <LoadingIndicator />
-{:else if user.role === 'Admin'}
-    <AdminDashboard user={user}/>
-{:else if user.role === 'Teacher'}
-    <TeacherDashboard user={user}/>
+{:else if data.user.role === 'Admin'}
+    <AdminDashboard user={data.user} />
+{:else if data.user.role === 'Teacher'}
+    <TeacherDashboard user={data.user} courses={data.courses} projects={data.projects} />
 {:else}
-    <StudentDashboard user={user} />
+    <StudentDashboard user={data.user} />
 {/if}
 
 
 <script lang="ts">
 
-    import AdminDashboard from '$lib/components/dashboard/admin_dashboard.svelte';
-    import TeacherDashboard from '$lib/components/dashboard/teacher_dashboard.svelte';
-    import StudentDashboard from '$lib/components/dashboard/student_dashboard.svelte';
+    import AdminDashboard from '$lib/components/dashboard/admin_dashboard.svelte'
+    import TeacherDashboard from '$lib/components/dashboard/teacher_dashboard.svelte'
+    import StudentDashboard from '$lib/components/dashboard/student_dashboard.svelte'
     import LoadingIndicator from '$lib/components/loading_indicator.svelte'
 
-    import {PUBLIC_API_URL} from '$env/static/public'
-    import {goto} from '$app/navigation'
-    import {onMount} from 'svelte'
-
-    let user = $state()
-
-    onMount(loadUser)
-
-    async function loadUser() {
-        const res = await fetch(`${PUBLIC_API_URL}/profile`, {
-            method: 'GET',
-            credentials: 'include',
-        })
-        if (res.status === 401) {
-            await goto('/login')
-        }
-        user = await res.json()
-    }
+    const { data } = $props()
 
 </script>

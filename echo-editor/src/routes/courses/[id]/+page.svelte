@@ -47,8 +47,8 @@
 
             <h1>Inhalt</h1>
 
-            {#if course}
-                <CourseContentList bind:data={course.content} courseId={id} refreshData={async () => course = await loadCourse(id)} />
+            {#if data.course}
+                <CourseContentList bind:data={content} courseId={data.id} refreshData={refresh} />
             {/if}
         </div>
 
@@ -56,47 +56,27 @@
 </div>
 
 
-<!-- TODO: Make editable -->
-<!-- TODO: Create chapters and lessons -->
-
-
 <script lang="ts">
 
     import BackButton from '$lib/components/elements/back_button.svelte'
     import Checkbox from '$lib/components/elements/checkbox.svelte'
-    import Modal from '$lib/components/modal.svelte';
+    import Modal from '$lib/components/modal.svelte'
 
-    import {PUBLIC_API_URL} from '$env/static/public'
-    import {goto} from '$app/navigation'
-    import {onMount} from 'svelte'
+    import {invalidateAll} from '$app/navigation'
     import CourseContentList from './CourseContentList.svelte'
 
     let { data } = $props()
-    let id = data.id
-
-    let course = $state<Optional<Course>>()
-
-    $inspect('course:', course)
+    let content = $state(data.course.content)
+    $inspect('data:', data)
 
     let isVisible = $state()
 
     let showDeleteModal = $state(false)
 
-    onMount(async () => {
-        course = await loadCourse(id)
-    })
-
-    async function loadCourse(id: string): Promise<Course> {
-        const res = await fetch(`${PUBLIC_API_URL}/courses/${id}`, {
-            method: 'GET',
-            credentials: 'include',
-        })
-        if (res.status === 401) {
-            await goto('/login')
-        }
-        return await res.json()
+    function refresh() {
+        console.log('refreshing')
+        invalidateAll()
     }
-
 
 </script>
 

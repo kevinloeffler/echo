@@ -28,6 +28,7 @@ module.exports = function (fastify, opts) {
             }
             if (user.role === types_1.UserRole.TEACHER) {
                 const courses = yield database_service_1.DB.courses.all.byTeacher(user.id, db);
+                console.log('DB courses', courses);
                 return reply.send(courses);
             }
             if (user.role === types_1.UserRole.STUDENT) {
@@ -38,8 +39,10 @@ module.exports = function (fastify, opts) {
         }));
         // @ts-ignore
         fastify.get('/courses/:id', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
+            console.log('running :id');
             const user = req.user;
             const { id } = req.params;
+            console.log('server id:', id);
             const course = yield database_service_1.DB.courses.one.byId(id, user, db);
             return reply.send(course);
         }));

@@ -6,7 +6,7 @@
                 <p class="block-label">Zuletzt Geöffnet</p>
                 <div class="resents block">
                     <p>Todo...</p>
-                    <!--TODO: load resents-->
+                    <!--TODO: load recent-->
                 </div>
             </div>
 
@@ -76,19 +76,10 @@
     import Modal from '$lib/components/modal.svelte'
     import CourseDisplay from '$lib/components/dashboard/teacher_course_display.svelte'
 
-    import {PUBLIC_API_URL} from '$env/static/public'
-    import {goto} from '$app/navigation'
-    import {onMount} from 'svelte'
+    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
+    import {invalidateAll} from '$app/navigation'
 
-    let { user } = $props()
-
-    let courses = $state<Optional<[]>>(undefined)
-    let projects = $state([])
-
-    onMount(async () => {
-        courses = await loadCourses()
-        projects = await loadProjects()
-    })
+    let { user, courses, projects } = $props()
 
     /* Create Course */
     let showCourseModal = $state(false)
@@ -97,36 +88,20 @@
     async function createCourse() {
         if (!showCourseModal) return  // TODO: show error message
 
-        const res = await fetch(`${PUBLIC_API_URL}/courses`, {
+        const res = await fetch(`${PUBLIC_API_URL_CLIENTSIDE}/courses`, {
             method: 'POST',
             credentials: 'include',
             body: JSON.stringify({ name: courseName }),
         })
         const response = await res.json()
+        console.log('response:', response)
         if (!response.status) {
             // TODO: alert user
         }
         showCourseModal = false
         courseName = ''
-        courses = await loadCourses()
-    }
-
-    /* Load Data */
-
-    async function loadCourses() {
-        const res = await fetch(`${PUBLIC_API_URL}/courses`, {
-            method: 'GET',
-            credentials: 'include',
-        })
-        if (res.status === 401) {
-            await goto('/login')
-        }
-        return res.json()
-    }
-
-    async function loadProjects() {
-        // TODO: implement
-        return []
+        await invalidateAll()
+        // courses = await loadCourses()
     }
 
 </script>
