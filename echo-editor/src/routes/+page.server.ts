@@ -8,7 +8,7 @@ export async function load({ fetch }) {
     })
 
     if (response.status === 401) {
-        throw redirect(300, '/login')
+        throw redirect(307, '/login')
     }
 
     const user = await response.json()
