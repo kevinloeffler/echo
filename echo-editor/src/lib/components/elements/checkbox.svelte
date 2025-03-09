@@ -1,6 +1,6 @@
 
 <div class="checkbox-wrapper">
-    <input class="inp-cbx" id="checkbox-input" type="checkbox" bind:checked={state} aria-checked={state} />
+    <input class="inp-cbx" id="checkbox-input" type="checkbox" bind:checked={_state} aria-checked={_state} />
 
     <label class="cbx" for="checkbox-input">
         <span class="label label-checkbox">{label}</span>
@@ -17,7 +17,18 @@
 
 <script lang="ts">
 
-    let { state = $bindable(), label } = $props()
+    let { checked = $bindable(), label, inverse = false } = $props()
+
+    let _state = $state(inverse ? !checked : checked)
+    $inspect('_state:', _state)
+
+    $effect(() => {
+        if (inverse) {
+            checked = !_state
+        } else {
+            checked = _state
+        }
+    })
 
 </script>
 
