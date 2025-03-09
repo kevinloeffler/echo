@@ -15,7 +15,7 @@ export async function load({ params, fetch }) {
     }
 
     const course = await response.json()
-    console.log('courses', course)
+    console.log('courses:', course)
 
-    return { id: params.id, course }
+    return { ...course }
 }

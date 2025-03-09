@@ -317,9 +317,17 @@ exports.DB = {
                 return rows;
             });
         },
-        update(name_1, description_1, userId_1) {
-            return __awaiter(this, arguments, void 0, function* (name, description, userId, hidden = false, archived = false, db) {
-                const query = ``;
+        update(id_1, name_1, description_1) {
+            return __awaiter(this, arguments, void 0, function* (id, name, description, hidden = false, db) {
+                const query = `
+                UPDATE "Courses"
+                SET name = $2,
+                    description = $3,
+                    hidden = $4
+                WHERE id = $1`;
+                const values = [id, name, description, hidden];
+                const { rows } = yield db.query(query, values);
+                return rows;
             });
         }
     },

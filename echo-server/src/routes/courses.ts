@@ -54,7 +54,7 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
             const user = req.user as User
             const body = await JSON.parse(req.body as string)
             const { name } = body
-            if (!name) return reply.code(400).send({ error: "Missing required fields: 'name'" })
+            if (!name) return reply.code(400).send({ error: "Missing required field: 'name'" })
             const result = await DB.courses.new(name, '', user.id, false, false, db)
             console.log('insert course result:', result)
             return reply.code(200).send({ status: true, message: 'Course created' })
@@ -63,8 +63,13 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
     // @ts-ignore
     fastify.patch('/courses/:id', { onRequest: [fastify.authenticate] },
         async (req: FastifyRequest, reply: FastifyReply) => {
-            const user = req.user as User
-            // TODO
+            // const user = req.user as User
+            const body = await JSON.parse(req.body as string)
+            const { id, name, description, hidden } = body
+            if (!id) return reply.code(400).send({ error: "Missing required field: 'id'" })
+
+            const result = await DB.courses.update(id, name, description, hidden, db)
+            return reply.code(200).send({ status: true, message: 'Course updated', result })
         })
 
 }

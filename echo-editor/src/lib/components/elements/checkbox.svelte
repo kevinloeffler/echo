@@ -20,7 +20,6 @@
     let { checked = $bindable(), label, inverse = false } = $props()
 
     let _state = $state(inverse ? !checked : checked)
-    $inspect('_state:', _state)
 
     $effect(() => {
         if (inverse) {

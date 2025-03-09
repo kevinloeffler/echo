@@ -8,15 +8,15 @@
 
                 <label class="label">
                     Kursname
-                    <input type="text" class="text-input">
+                    <input bind:value={course.name} type="text" class="text-input">
                 </label>
 
                 <label class="label">
                     Beschrieb
-                    <textarea class="text-input"></textarea>
+                    <textarea bind:value={course.description} class="text-input"></textarea>
                 </label>
 
-                <Checkbox bind:state={isVisible} label={'Sichtbar'} />
+                <Checkbox bind:checked={course.hidden} inverse={true} label={'Sichtbar'} />
             </div>
 
             <button onclick={() => showDeleteModal = true} class="button button-secondary">Kurs Löschen</button>
@@ -47,8 +47,8 @@
 
             <h1>Inhalt</h1>
 
-            {#if data.course}
-                <CourseContentList bind:data={content} courseId={data.id} refreshData={refresh} />
+            {#if course}
+                <CourseContentList bind:data={course.content} courseId={course.id} refreshData={refresh} />
             {/if}
         </div>
 
@@ -64,14 +64,35 @@
 
     import {invalidateAll} from '$app/navigation'
     import CourseContentList from './CourseContentList.svelte'
+    import {debounce} from '$lib/util'
+    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
 
-    let { data } = $props()
-    let content = $state(data.course.content)
-    $inspect('data:', data)
-
-    let isVisible = $state()
+    let { data }: { data: Course } = $props()
+    let course = $state<Course>(data)
 
     let showDeleteModal = $state(false)
+
+    let firstUpdateCall = true  // prevent updating on component mount
+    const updateCourse = debounce(async (updatedCourse: Course) => {
+        if (firstUpdateCall) {
+            firstUpdateCall = false
+            return
+        }
+
+        const response = await fetch(`${PUBLIC_API_URL_CLIENTSIDE}/courses/${course.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(updatedCourse),
+            credentials: 'include'
+        })
+        const reply = await response.json()
+        if (!response.ok || !reply.status) {}  // todo: handle error
+    }, 1000)
+
+    $effect(() => {
+        const newCourse = {...course}
+        // @ts-ignore
+        updateCourse(newCourse)
+    })
 
     function refresh() {
         console.log('refreshing')

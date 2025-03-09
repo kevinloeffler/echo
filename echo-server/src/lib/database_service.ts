@@ -303,8 +303,16 @@ export const DB = {
             return rows
         },
 
-        async update(name: string, description: string, userId: string, hidden=false, archived=false, db: Postgres): Promise<Optional<any>> {
-            const query = ``
+        async update(id: number, name: string, description: string, hidden=false, db: Postgres): Promise<Optional<any>> {
+            const query = `
+                UPDATE "Courses"
+                SET name = $2,
+                    description = $3,
+                    hidden = $4
+                WHERE id = $1`
+            const values = [id, name, description, hidden]
+            const { rows } = await db.query(query, values)
+            return rows
         }
     },
 

@@ -52,15 +52,20 @@ module.exports = function (fastify, opts) {
             const body = yield JSON.parse(req.body);
             const { name } = body;
             if (!name)
-                return reply.code(400).send({ error: "Missing required fields: 'name'" });
+                return reply.code(400).send({ error: "Missing required field: 'name'" });
             const result = yield database_service_1.DB.courses.new(name, '', user.id, false, false, db);
             console.log('insert course result:', result);
             return reply.code(200).send({ status: true, message: 'Course created' });
         }));
         // @ts-ignore
         fastify.patch('/courses/:id', { onRequest: [fastify.authenticate] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
-            const user = req.user;
-            // TODO
+            // const user = req.user as User
+            const body = yield JSON.parse(req.body);
+            const { id, name, description, hidden } = body;
+            if (!id)
+                return reply.code(400).send({ error: "Missing required field: 'id'" });
+            const result = yield database_service_1.DB.courses.update(id, name, description, hidden, db);
+            return reply.code(200).send({ status: true, message: 'Course updated', result });
         }));
     });
 };
