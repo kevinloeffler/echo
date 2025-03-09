@@ -48,7 +48,7 @@
 
 
 <script lang="ts">
-    import {PUBLIC_API_URL} from '$env/static/public'
+    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
     import {goto} from '$app/navigation'
 
     let email = $state('')
@@ -60,7 +60,7 @@
         event.preventDefault()
         const form: Optional<HTMLFormElement> = event.target as Optional<HTMLFormElement>
         if (form?.checkValidity()) {
-            const response = await fetch(`${PUBLIC_API_URL}/login`, {
+            const response = await fetch(`${PUBLIC_API_URL_CLIENTSIDE}/login`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
