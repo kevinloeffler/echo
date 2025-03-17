@@ -1,5 +1,5 @@
 
-<h1>Content</h1>
+<h1>Einstellungen</h1>
 <p>id: {data.id}</p>
 <p>content id: {data.contentId}</p>
 

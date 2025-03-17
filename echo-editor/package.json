@@ -24,6 +24,7 @@
 		"@codemirror/lang-python": "^6.1.6",
 		"@codemirror/theme-one-dark": "^6.1.2",
 		"@svelte-put/shortcut": "^4.1.0",
+		"marked": "^15.0.7",
 		"pyodide": "^0.27.0",
 		"sortablejs": "^1.15.6",
 		"svelte-codemirror-editor": "^1.4.1",
