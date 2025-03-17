@@ -76,7 +76,7 @@
     let pythonIsReady = $state(false)
 
     function run() {
-        if (!worker || isRunning) {
+        if (!worker || !pythonIsReady || isRunning) {
             console.error('Python Worker not ready or already running')
             return
         }
@@ -86,11 +86,20 @@
         isRunning = true
         // execute code
         const id = Date.now()
-        worker.postMessage({ id, code: userCode })
+        worker.postMessage({ type: 'code', id, code: userCode })
     }
+
+    const syncBuffer = new SharedArrayBuffer(4)
+    const dataBuffer = new SharedArrayBuffer(2048)  // 1024 UTF-16 characters
+
+    const syncArray = new Int32Array(syncBuffer)
+    const dataArray = new Int32Array(dataBuffer)
+
 
     onMount(() => {
         worker = new Worker(new URL('$lib/workers/python_worker.ts', import.meta.url), { type: 'module' })
+        worker.postMessage({ type: 'sync', syncBuffer: syncBuffer})
+        worker.postMessage({ type: 'data', dataBuffer: dataBuffer})
 
         worker.onmessage = (event: MessageEvent<PythonOutput>) => {
             const message = event.data as PythonOutput
@@ -114,7 +123,25 @@
                 errors.push(error)
                 pythonOutput.push({ message: prettyError(error), type: 'stderr' })
                 isRunning = false
+            } else if (message.status === 'get_input') {
+                dataArray.fill(0)  // clear buffer
+
+                const userInput = prompt(message.data) || ''
+                const encoder = new TextEncoder()
+                const encodedText = encoder.encode(userInput)
+                dataArray.set(encodedText, 0)
+
+                Atomics.store(syncArray, 0, 1)
+                Atomics.notify(syncArray, 0)
+
+                // reset the sync array
+                Atomics.store(syncArray, 0, 0)
+                Atomics.notify(syncArray, 0)
             }
+        }
+
+        worker.onerror = (error) => {
+            console.error('Worker error:', error)
         }
 
         return () => {
