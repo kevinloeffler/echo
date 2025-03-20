@@ -98,14 +98,15 @@
 
     onMount(() => {
         worker = new Worker(new URL('$lib/workers/python_worker.ts', import.meta.url), { type: 'module' })
-        worker.postMessage({ type: 'sync', syncBuffer: syncBuffer})
-        worker.postMessage({ type: 'data', dataBuffer: dataBuffer})
 
         worker.onmessage = (event: MessageEvent<PythonOutput>) => {
             const message = event.data as PythonOutput
 
             if (message.status === 'ready') {
                 pythonIsReady = true
+                worker!.postMessage({ type: 'sync', syncBuffer: syncBuffer})
+                worker!.postMessage({ type: 'data', dataBuffer: dataBuffer})
+
             } else if (message.status === 'done') {
                 console.log('PYTHON: execution finished')
                 isRunning = false

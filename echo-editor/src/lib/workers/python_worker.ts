@@ -1,16 +1,22 @@
-// @ts-ignore
-import {loadPyodide} from 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.mjs'
+import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
 
-let pyodideReadyPromise = loadPyodide()
+const pyodidePath = `${PUBLIC_API_URL_CLIENTSIDE}/static/pyodide/pyodide.mjs`
+const pyodideModule = await import(`${pyodidePath}` /* @vite-ignore */)
+let pyodideReadyPromise = pyodideModule.loadPyodide()
 
 pyodideReadyPromise.then(() => {
     self.postMessage({ status: 'ready', data: 'python interpreter is initialized' }) // Notify main thread when ready
+    console.log('Python ready')
 })
 
 /////////////////////////
 
 let syncArray: Int32Array
 let dataArray: Int32Array
+
+self.onmessage = (event) => {
+    console.log('event:', event)
+}
 
 self.onmessage = async (event) => {
     const pyodide: any = await pyodideReadyPromise
@@ -20,17 +26,16 @@ self.onmessage = async (event) => {
 
     if (event.data.type === 'sync') {
         syncArray = new Int32Array(event.data.syncBuffer)
-        console.log('loaded sync buffer', syncArray)
 
     } else if (event.data.type === 'data') {
         dataArray = new Int32Array(event.data.dataBuffer)
-        console.log('loaded data buffer', dataArray)
 
     } else if (event.data.type === 'code') {
 
         const { id, code } = event.data
 
         try {
+            // await pyodide.loadPackagesFromImports(code) DOES NOT WORK BECAUSE IT IS NOT DOWNLOADED ON THE SERVERS PUBLIC DIRECTORY
             const result = await pyodide.runPythonAsync(code)
             self.postMessage({ status: 'done', data: result, id })
         } catch (error: any) {
