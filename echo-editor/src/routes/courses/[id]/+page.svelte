@@ -65,7 +65,7 @@
     import {invalidateAll} from '$app/navigation'
     import CourseContentList from './CourseContentList.svelte'
     import {debounce} from '$lib/util'
-    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
+    import {updateCourse} from './helpers'
 
     let { data }: { data: Course } = $props()
     let course = $state<Course>(data)
@@ -73,25 +73,18 @@
     let showDeleteModal = $state(false)
 
     let firstUpdateCall = true  // prevent updating on component mount
-    const updateCourse = debounce(async (updatedCourse: Course) => {
+    const handleCourseChange = debounce(async (updatedCourse: Course) => {
         if (firstUpdateCall) {
             firstUpdateCall = false
             return
         }
-
-        const response = await fetch(`${PUBLIC_API_URL_CLIENTSIDE}/courses/${course.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(updatedCourse),
-            credentials: 'include'
-        })
-        const reply = await response.json()
-        if (!response.ok || !reply.status) {}  // todo: handle error
+        const response = await updateCourse(updatedCourse)  // TODO: handle error
     }, 1000)
 
     $effect(() => {
         const newCourse = {...course}
         // @ts-ignore
-        updateCourse(newCourse)
+        handleCourseChange(newCourse)
     })
 
     function refresh() {

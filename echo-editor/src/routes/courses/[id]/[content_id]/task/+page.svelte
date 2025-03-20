@@ -9,7 +9,7 @@
     </button>
 
     {#if !showPreview}
-        <textarea bind:value={value} name="task" class="editor"></textarea>
+        <textarea bind:value={course.description} name="task" class="editor"></textarea>
     {:else}
         <div class="preview" bind:this={previewElement}>
         </div>
@@ -22,21 +22,38 @@
 
 <script lang="ts">
     import {marked} from 'marked'
+    import {debounce} from '$lib/util'
+    import {updateCourse} from '../../helpers'
 
     const { data } = $props()
+    let course = $state<Course>(data.course)
 
-    let value = $state(data.course.description)
     let showPreview = $state(false)
     let previewElement = $state<HTMLDivElement>()
 
     $effect(() => {
-        renderMarkdown(value)
+        renderMarkdown(course.description)
+    })
+
+    $effect(() => {
+        const newCourse = {...course}
+        // @ts-ignore
+        handleCourseChange(newCourse)
     })
 
     async function renderMarkdown(text: string) {
         if (!showPreview || !previewElement) return  // avoid unnecessary renders
         previewElement.innerHTML = await marked.parse(text)
     }
+
+    let firstUpdateCall = false
+    const handleCourseChange = debounce(async (updatedCourse: Course) => {
+        if (firstUpdateCall) {
+            firstUpdateCall = true
+            return
+        }
+        const response = await updateCourse(updatedCourse)  // TODO: handle error
+    }, 1000)
 
 </script>
 
