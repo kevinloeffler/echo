@@ -1,7 +1,5 @@
 
-<h1>Tests</h1>
-<p>id: {data.id}</p>
-<p>content id: {data.contentId}</p>
+<p>Todo: implement tests...</p>
 
 
 <script lang="ts">
