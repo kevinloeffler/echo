@@ -11,7 +11,7 @@
     {#if !showPreview}
         <textarea bind:value={course.description} name="task" class="editor"></textarea>
     {:else}
-        <div class="preview" bind:this={previewElement}>
+        <div class="preview markdown" bind:this={previewElement}>
         </div>
     {/if}
 
@@ -52,7 +52,7 @@
             firstUpdateCall = true
             return
         }
-        const response = await updateCourse(updatedCourse)  // TODO: handle error
+        await updateCourse(updatedCourse)  // TODO: handle error
     }, 1000)
 
 </script>
@@ -108,14 +108,6 @@
         padding: 20px 24px;
         border: 2px solid var(--divider);
         border-radius: 8px;
-    }
-
-    /* Markdown styles */
-
-    :global {
-        .preview > h1 {
-            color: red;
-        }
     }
 
 </style>

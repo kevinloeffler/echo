@@ -1,0 +1,65 @@
+
+.markdown {
+    font-family: "EB Garamond", serif;
+    font-weight: 100;
+    font-size: 16px;
+}
+
+.markdown {
+
+    h1 {
+        font-family: "DM Serif Display", serif;
+    }
+
+    h2 {
+        font-size: 22px;
+        font-weight: 900;
+    }
+
+    h3 {
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    h4 {
+        font-weight: 100;
+        font-size: 16px;
+    }
+
+    h5 {
+        font-weight: 100;
+        font-size: 16px;
+    }
+
+    a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+
+    em {
+        font-style: normal;
+        font-family: "Fira Code", monospace;
+        font-size: 14px;
+        background-color: var(--divider);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    code {
+        display: block;
+        position: relative;
+        margin: 8px 0;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-family: "Fira Code", monospace;
+        background-color: var(--divider);
+        border-radius: 4px;
+    }
+
+    hr {
+        color: var(--background);
+        border: none;
+        margin: 4px 0;
+    }
+
+}

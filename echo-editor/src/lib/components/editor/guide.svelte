@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <div class="content">
+    <div class="content markdown" bind:this={previewElement} >
         <h2>Anleitung</h2>
         Lorem Ipsum is simply dummy text...
     </div>
@@ -46,11 +46,22 @@
 <script lang="ts">
 
     import { handleShortcuts, Shortcuts } from '$lib/services/shortcuts'
+    import {marked} from 'marked'
+
+    let { text }: { text: string } = $props()
 
     let showMenuOverlay = $state(false)
-
     function closeOverlay() {
         showMenuOverlay = false
+    }
+
+    $effect(() => {
+        renderMarkdown(text)
+    })
+
+    let previewElement: HTMLDivElement
+    async function renderMarkdown(text: string) {
+        previewElement.innerHTML = await marked.parse(text)
     }
 
 </script>

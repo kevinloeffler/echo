@@ -1,7 +1,7 @@
 <div class="wrapper">
 
     <div class="left-panel">
-        <Guide />
+        <Guide text={courseContent.description} />
     </div>
 
     <div class="main-panel">
@@ -30,6 +30,8 @@
     import Assistant from '$lib/components/editor/assistant.svelte'
     import RunPanel from '$lib/components/editor/run_panel.svelte'
     import Guide from '$lib/components/editor/guide.svelte'
+
+    let { courseContent }: { courseContent: CourseContent } = $props()
 
     let pythonOutput = $state<{message: string, type: 'stdout' | 'stderr'}[]>([])
 
