@@ -9,7 +9,7 @@
     </button>
 
     {#if !showPreview}
-        <textarea bind:value={course.description} name="task" class="editor"></textarea>
+        <textarea bind:value={courseContent.description} name="task" class="editor"></textarea>
     {:else}
         <div class="preview markdown" bind:this={previewElement}>
         </div>
@@ -23,22 +23,23 @@
 <script lang="ts">
     import {marked} from 'marked'
     import {debounce} from '$lib/util'
-    import {updateCourse} from '../../helpers'
+    import {updateCourseContent} from '../../helpers'
 
     const { data } = $props()
-    let course = $state<Course>(data.course)
+    let courseContent = $state<Course>(data.courseContent)
+    $inspect('content:', courseContent)
 
     let showPreview = $state(false)
     let previewElement = $state<HTMLDivElement>()
 
     $effect(() => {
-        renderMarkdown(course.description)
+        renderMarkdown(courseContent.description)
     })
 
     $effect(() => {
-        const newCourse = {...course}
+        const updatedCourseContent = {...courseContent}
         // @ts-ignore
-        handleCourseChange(newCourse)
+        handleCourseChange(updatedCourseContent)
     })
 
     async function renderMarkdown(text: string) {
@@ -46,13 +47,14 @@
         previewElement.innerHTML = await marked.parse(text)
     }
 
-    let firstUpdateCall = false
+    let firstUpdateCall = true
     const handleCourseChange = debounce(async (updatedCourse: Course) => {
         if (firstUpdateCall) {
-            firstUpdateCall = true
+            firstUpdateCall = false
             return
         }
-        await updateCourse(updatedCourse)  // TODO: handle error
+        const x = await updateCourseContent(updatedCourse)  // TODO: handle error
+        console.log('x:', x)
     }, 1000)
 
 </script>

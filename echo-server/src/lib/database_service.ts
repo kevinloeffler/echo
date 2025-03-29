@@ -318,6 +318,13 @@ export const DB = {
 
     CourseContent: {
 
+        async get(id: number, db: Postgres): Promise<Optional<any>> {
+            const query = `SELECT * FROM "CourseContent" WHERE id = $1;`
+            const params = [id]
+            const { rows } = await db.query(query, params)
+            return rows[0]
+        },
+
         async new(courseId: number, parentId: number | null, index: number, type: 'chapter' | 'lesson', name: string, db:Postgres) {
             parentId = (parentId && parentId > 0) ? parentId : null
             // Get next element
@@ -467,6 +474,19 @@ export const DB = {
             `
             await db.query(updateTarget, [newParentId, futureNextId, id])
 
+        },
+
+        async update(id: string, name: string, type: string, description: string, db: Postgres) {
+            const query = `
+                UPDATE "CourseContent"
+                SET name = $2,
+                    type = $3,
+                    description = $4
+                WHERE id = $1
+                RETURNING *;
+            `
+            const values = [id, name, type, description]
+            await db.query(query, values)
         }
 
     }

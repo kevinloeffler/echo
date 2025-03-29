@@ -1,4 +1,4 @@
-<a href="./{courseId}/2" class={['content-wrapper', element.type]} draggable="true" ondragstart={dragStart}>
+<a href="./{courseId}/{element.id}" class={['content-wrapper', element.type]} draggable="true" ondragstart={dragStart}>
     <p class="name">{element.name}</p>
     <p class="type">{(element.type === 'chapter') ? 'Kapitel' : 'Lektion'}</p>
 </a>

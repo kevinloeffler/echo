@@ -4,8 +4,8 @@
 
         <div class="header">
             <div class="title-wrapper">
-                <BackButton link="/courses/{data.course.id}" />
-                <h1>{data.course.name}</h1>
+                <BackButton link="/courses/{data.id}" />
+                <h1>{data.courseContent.name}</h1>
             </div>
             <div class="pane-select-wrapper">
                 <button

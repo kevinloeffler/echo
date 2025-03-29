@@ -332,6 +332,14 @@ exports.DB = {
         }
     },
     CourseContent: {
+        get(id, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const query = `SELECT * FROM "CourseContent" WHERE id = $1;`;
+                const params = [id];
+                const { rows } = yield db.query(query, params);
+                return rows[0];
+            });
+        },
         new(courseId, parentId, index, type, name, db) {
             return __awaiter(this, void 0, void 0, function* () {
                 parentId = (parentId && parentId > 0) ? parentId : null;
@@ -471,6 +479,20 @@ exports.DB = {
                 WHERE id = $3;
             `;
                 yield db.query(updateTarget, [newParentId, futureNextId, id]);
+            });
+        },
+        update(id, name, type, description, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const query = `
+                UPDATE "CourseContent"
+                SET name = $2,
+                    type = $3,
+                    description = $4
+                WHERE id = $1
+                RETURNING *;
+            `;
+                const values = [id, name, type, description];
+                yield db.query(query, values);
             });
         }
     }

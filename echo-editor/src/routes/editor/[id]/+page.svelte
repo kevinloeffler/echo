@@ -8,4 +8,6 @@
     let { data } = $props()
     let course = $state(data)
 
+    $inspect(course)
+
 </script>

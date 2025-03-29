@@ -10,6 +10,15 @@ import {DB} from '../lib/database_service'
 module.exports = async function (fastify: FastifyInstance, opts: any) {
     const db = fastify.pg
 
+    // @ts-ignore  TODO: check if user has access
+    fastify.get('/course-content/:id', {}, async (req: FastifyRequest, reply: FastifyReply) => {
+        // @ts-ignore
+        const { id } = req.params
+        console.log(`\n\n\n course content id: ${id} \n\n\n`)
+        const courseContent = await DB.CourseContent.get(id, db)
+        return reply.code(200).send({ ...courseContent })
+    })
+
     // @ts-ignore
     fastify.post('/course-content/new', { onRequest: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
         async (req: FastifyRequest, reply: FastifyReply) => {
@@ -32,6 +41,17 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
 
             await DB.CourseContent.moveCourseContent(contentId, newParentId, index, user, db)
             return reply.code(200).send({status: true})
+        })
+
+    // @ts-ignore
+    fastify.patch('/course-content/:id', { onreset: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
+        async (req: FastifyRequest, reply: FastifyReply) => {
+            const user = req.user as User
+            const body = await JSON.parse(req.body as string)
+            const { id, name, type, description } = body
+            if (!id || !name || !type || !description) return reply.code(400).send({ error: 'Missing required fields' })
+            await DB.CourseContent.update(id, name, type, description, db)
+            return reply.code(200).send({ status: true })
         })
 
 }
