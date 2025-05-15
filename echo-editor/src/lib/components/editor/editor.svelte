@@ -31,7 +31,7 @@
     import RunPanel from '$lib/components/editor/run_panel.svelte'
     import Guide from '$lib/components/editor/guide.svelte'
 
-    let { courseContent }: { courseContent: CourseContent } = $props()
+    let { course, courseContent }: { course: Course, courseContent: CourseContent } = $props()
 
     let pythonOutput = $state<{message: string, type: 'stdout' | 'stderr'}[]>([])
 

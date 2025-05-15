@@ -20,13 +20,13 @@
 
 <script lang="ts">
     import {mapUserRoles} from '$lib/util'
-    import {PUBLIC_API_URL} from '$env/static/public'
+    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
     import {goto} from '$app/navigation'
 
     let { user } = $props()
 
     async function logout() {
-        await fetch(`${PUBLIC_API_URL}/logout`, {
+        await fetch(`${PUBLIC_API_URL_CLIENTSIDE}/logout`, {
             method: 'GET',
             credentials: 'include',
         })

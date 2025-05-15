@@ -18,6 +18,8 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
             // @ts-ignore
             const { role, archived } = req.query
 
+            console.log('received /users with role=' + role)
+
             if (role) {
                 const roles = role.split(',')
                 console.log('request roles:', roles)

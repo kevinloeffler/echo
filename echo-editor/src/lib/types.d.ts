@@ -10,7 +10,17 @@ type PythonOutput = {
 
 type UserRoles = 'Admin'| 'Teacher' | 'Student'
 
-type User = {}
+type User = {
+    id?: string,
+    name: string,
+    mail: string,
+    role: UserRoles,
+    profilePicture: Optional<string>,
+    organisation: string,
+    link: Optional<string>,
+    description: Optional<string>,
+    archive: boolean,
+}
 
 type Chapter = {}
 

@@ -37,6 +37,28 @@ export const DB = {
                 const { rows } = await db.query(query, [roles])
                 return rows
             },
+
+            async byCourse(courseId: number, db: Postgres): Promise<User[]> {
+                const query = `
+                    SELECT 
+                        u.id,
+                        u.name,
+                        u.mail,
+                        u.role,
+                        u.profile_picture,
+                        u.organisation,
+                        u.link,
+                        u.description,
+                        u.archived
+                    FROM "CourseStudents" cs
+                    JOIN "Users" u ON cs.student_id = u.id
+                    WHERE cs.course_id = $1
+                    ORDER BY u.name;
+                `
+
+                const { rows } = await db.query(query, [courseId])
+                return rows
+            },
         },
 
         async new(name: string, email: string, role: string, password: string, db: Postgres): Promise<Optional<User>> {
@@ -52,7 +74,28 @@ export const DB = {
             const pw_result = await DB.passwords.new(newUser.id, credentials.password, credentials.salt, db)
             if (!pw_result) return undefined  // TODO: undo insert user operation when password could not be created...
             return newUser
-        }
+        },
+
+        async addToCourse(courseId: number, userId: number, db: Postgres) {
+            const query = `
+                INSERT INTO "CourseStudents" (course_id, student_id)
+                VALUES ($1, $2)
+                ON CONFLICT (course_id, student_id) DO NOTHING;
+            `
+            await db.query(query, [courseId, userId])
+            console.log('added user to course')
+        },
+
+        async removeFromCourse(courseId: number, userId: number, db: Postgres) {
+            const query = `
+                DELETE FROM "CourseStudents"
+                WHERE course_id = $1
+                AND student_id = $2;
+            `
+            await db.query(query, [courseId, userId])
+            console.log('removed user from course')
+        },
+
     },
 
     passwords: {

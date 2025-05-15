@@ -15,7 +15,13 @@ export async function load({ params, fetch }) {
     }
 
     const course = await response.json()
-    console.log('courses:', course)
 
-    return { ...course }
+    const responseStudents = await fetch(`${PUBLIC_API_URL}/courses/${params.id}/users`, {
+        method: 'GET',
+        credentials: 'include',
+    })
+
+    const courseStudents = await responseStudents.json()
+
+    return { ...course, students: courseStudents }
 }

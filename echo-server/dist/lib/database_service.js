@@ -50,6 +50,28 @@ exports.DB = {
                     return rows;
                 });
             },
+            byCourse(courseId, db) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const query = `
+                    SELECT 
+                        u.id,
+                        u.name,
+                        u.mail,
+                        u.role,
+                        u.profile_picture,
+                        u.organisation,
+                        u.link,
+                        u.description,
+                        u.archived
+                    FROM "CourseStudents" cs
+                    JOIN "Users" u ON cs.student_id = u.id
+                    WHERE cs.course_id = $1
+                    ORDER BY u.name;
+                `;
+                    const { rows } = yield db.query(query, [courseId]);
+                    return rows;
+                });
+            },
         },
         new(name, email, role, password, db) {
             return __awaiter(this, void 0, void 0, function* () {
@@ -67,7 +89,29 @@ exports.DB = {
                     return undefined; // TODO: undo insert user operation when password could not be created...
                 return newUser;
             });
-        }
+        },
+        addToCourse(courseId, userId, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const query = `
+                INSERT INTO "CourseStudents" (course_id, student_id)
+                VALUES ($1, $2)
+                ON CONFLICT (course_id, student_id) DO NOTHING;
+            `;
+                yield db.query(query, [courseId, userId]);
+                console.log('added user to course');
+            });
+        },
+        removeFromCourse(courseId, userId, db) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const query = `
+                DELETE FROM "CourseStudents"
+                WHERE course_id = $1
+                AND student_id = $2;
+            `;
+                yield db.query(query, [courseId, userId]);
+                console.log('removed user from course');
+            });
+        },
     },
     passwords: {
         getByMail(email, db) {

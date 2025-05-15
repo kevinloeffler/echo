@@ -67,5 +67,27 @@ module.exports = function (fastify, opts) {
             const result = yield database_service_1.DB.courses.update(id, name, description, hidden, db);
             return reply.code(200).send({ status: true, message: 'Course updated', result });
         }));
+        /* Course Users */
+        // @ts-ignore
+        fastify.get('/courses/:id/users', { onRequest: [fastify.userHasAnyRole([types_1.UserRole.TEACHER, types_1.UserRole.ADMIN])] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
+            const user = req.user; // TODO: check if user has access to the course
+            const { id } = req.params;
+            const users = yield database_service_1.DB.users.all.byCourse(id, db);
+            return reply.code(200).send(users);
+        }));
+        // @ts-ignore
+        fastify.patch('/courses/:id/users', { onRequest: [fastify.userHasAnyRole([types_1.UserRole.TEACHER, types_1.UserRole.ADMIN])] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
+            const user = req.user; // TODO: check if user has access to the course
+            const { id } = req.params;
+            const body = yield JSON.parse(req.body);
+            if ((body === null || body === void 0 ? void 0 : body.method) === 'add') {
+                yield database_service_1.DB.users.addToCourse(id, body.student, db);
+            }
+            else if ((body === null || body === void 0 ? void 0 : body.method) === 'remove') {
+                yield database_service_1.DB.users.removeFromCourse(id, body.student, db);
+            }
+            console.log('updated user');
+            return reply.code(200).send({ status: true });
+        }));
     });
 };

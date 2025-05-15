@@ -72,4 +72,32 @@ module.exports = async function (fastify: FastifyInstance, opts: any) {
             return reply.code(200).send({ status: true, message: 'Course updated', result })
         })
 
+    /* Course Users */
+
+    // @ts-ignore
+    fastify.get('/courses/:id/users', { onRequest: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
+        async (req: FastifyRequest, reply: FastifyReply) => {
+            const user = req.user as User  // TODO: check if user has access to the course
+            const { id } = req.params
+            const users = await DB.users.all.byCourse(id, db)
+            return reply.code(200).send(users)
+        })
+
+    // @ts-ignore
+    fastify.patch('/courses/:id/users', { onRequest: [fastify.userHasAnyRole([UserRole.TEACHER, UserRole.ADMIN])] },
+        async (req: FastifyRequest, reply: FastifyReply) => {
+            const user = req.user as User  // TODO: check if user has access to the course
+            const { id } = req.params
+            const body = await JSON.parse(req.body as string)
+
+            if (body?.method === 'add') {
+                await DB.users.addToCourse(id, body.student, db)
+            } else if (body?.method === 'remove') {
+                await DB.users.removeFromCourse(id, body.student, db)
+            }
+
+            console.log('updated user')
+            return reply.code(200).send({ status: true })
+        })
+
 }

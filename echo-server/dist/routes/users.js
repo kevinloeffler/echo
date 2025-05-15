@@ -24,6 +24,7 @@ module.exports = function (fastify, opts) {
         fastify.get('/users', { onRequest: [fastify.userHasAnyRole([types_1.UserRole.TEACHER, types_1.UserRole.ADMIN])] }, (req, reply) => __awaiter(this, void 0, void 0, function* () {
             // @ts-ignore
             const { role, archived } = req.query;
+            console.log('received /users with role=' + role);
             if (role) {
                 const roles = role.split(',');
                 console.log('request roles:', roles);

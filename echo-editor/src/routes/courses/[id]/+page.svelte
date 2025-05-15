@@ -17,6 +17,36 @@
                 </label>
 
                 <Checkbox bind:checked={course.hidden} inverse={true} label={'Sichtbar'} />
+
+                <div class="label">
+                    Teilnehmende
+                    <div class="students">
+                        <p>{data.students.length} SuS</p>
+                        <button class="button button-secondary" onclick={()=> showManageUsersModal = !showManageUsersModal}>
+                            Verwalten
+                        </button>
+                        <Modal bind:showModal={showManageUsersModal} title={'Teilnehmende verwalten'}>
+                            {#if showManageUsersModal}
+                                <div class="manage-user-modal">
+                                    {#each students as student}
+                                        {@const subscribed = data.students.some(x => x.id === student.id)}
+                                        <div class="manage-user-student">
+                                            <p>{student.name}</p>
+                                            <button onclick={() => updateStudent(student.id, subscribed)}
+                                                    class={['student-checkbox', subscribed ? 'student-checkbox-active' : '']}>
+                                                <img src="/images/checkbox-icon.svg" alt="Checkbox Icon">
+                                            </button>
+                                        </div>
+                                    {/each}
+                                    <button class="button button-primary add-user-button" onclick={() => showManageUsersModal = !showManageUsersModal}>
+                                        Speichern
+                                    </button>
+                                </div>
+                            {/if}
+                        </Modal>
+                    </div>
+                </div>
+
             </div>
 
             <button onclick={() => showDeleteModal = true} class="button button-secondary">Kurs Löschen</button>
@@ -66,11 +96,16 @@
     import CourseContentList from './CourseContentList.svelte'
     import {debounce} from '$lib/util'
     import {updateCourse} from './helpers'
+    import {PUBLIC_API_URL_CLIENTSIDE} from '$env/static/public'
+    import {onMount} from 'svelte'
 
     let { data }: { data: Course } = $props()
     let course = $state<Course>(data)
 
     let showDeleteModal = $state(false)
+    let showManageUsersModal = $state(false)
+
+    let students: User[] = $state([])
 
     let firstUpdateCall = true  // prevent updating on component mount
     const handleCourseChange = debounce(async (updatedCourse: Course) => {
@@ -91,6 +126,33 @@
         console.log('refreshing')
         invalidateAll()
     }
+
+    async function loadAllStudents(): Promise<User[]> {
+        const res = await fetch(PUBLIC_API_URL_CLIENTSIDE + '/users?role=Student', {
+            method: 'GET',
+            credentials: 'include',
+        })
+        return await res.json()
+    }
+
+    async function updateStudent(studentId: string | number, subscribed: boolean) {
+        console.log('running update')
+        await fetch(PUBLIC_API_URL_CLIENTSIDE + `/courses/${course.id}/users`, {
+            method: 'PATCH',
+            credentials: 'include',
+            body: JSON.stringify({
+                method: subscribed ? 'remove' : 'add',
+                student: studentId,
+            })
+        })
+        console.log('running reload')
+        students = await loadAllStudents()
+        await invalidateAll()
+    }
+
+    onMount( async () => {
+        students = await loadAllStudents()
+    })
 
 </script>
 
@@ -133,7 +195,24 @@
         resize: vertical;
     }
 
-    /***** MODAL *****/
+    .students {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .students > p {
+        font-size: 14px;
+        color: var(--text);
+        margin-bottom: 12px;
+    }
+
+    .students > button {
+        width: 100px;
+    }
+
+    /***** DELETE MODAL *****/
 
     .modal-wrapper {
         max-width: 400px;
@@ -163,6 +242,50 @@
     .classHovered {
         background-color: lightblue;
         color: white;
+    }
+
+    /***** MANAGE STUDENTS MODAL *****/
+
+    .add-user-button {
+        margin: 12px 0 0;
+    }
+
+    .manage-user-modal {
+        padding: 12px 16px;
+    }
+
+    .manage-user-student {
+        font-weight: 400;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .student-checkbox {
+        width: 16px;
+        height: 16px;
+        background-color: var(--button-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+    }
+
+    .student-checkbox-active {
+        background-color: var(--accent);
+    }
+
+    .student-checkbox > img {
+        opacity: 0;
+    }
+
+    .student-checkbox-active > img {
+        opacity: 1;
+    }
+
+    .student-checkbox:hover > img {
+        opacity: 0.2;
     }
 
 </style>
