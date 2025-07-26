@@ -6,7 +6,7 @@
 {:else if data.user.role === 'Teacher'}
     <TeacherDashboard user={data.user} courses={data.courses} projects={data.projects} />
 {:else}
-    <StudentDashboard user={data.user} />
+    <StudentDashboard user={data.user} courses={data.courses} projects={data.projects} />
 {/if}
 
 

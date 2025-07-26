@@ -555,6 +555,7 @@ function buildCourse(items: any[]): Optional<Course> {
         description: items[0].course_description,
         hidden: items[0].course_hidden,
         archived: items[0].course_archived
+        // TODO: add teacher
     }
 
     if (items.length === 1) return { ...course, content: [] }

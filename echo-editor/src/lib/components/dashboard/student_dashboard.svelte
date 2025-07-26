@@ -6,7 +6,7 @@
                 <p class="block-label">Zuletzt Geöffnet</p>
                 <div class="resents block">
                     <p>Todo...</p>
-                    <!--TODO: load resents-->
+                    <!--TODO: load recents-->
                 </div>
             </div>
 
@@ -15,25 +15,21 @@
                 <div class="courses-wrapper">
                     <p class="block-label">Kurse</p>
                     <div class="courses block">
-                        {#await loadCourses()}
-                            <div class="loading-placeholder">
-                                <LoadingIndicator />
+
+                        {#if courses}
+                            {#each courses as course}
+                                <CourseDisplay course={course} />
+                            {/each}
+                        {:else}
+                            <div class="courses-placeholder">
+                                <img src="/images/empty-box-icon.svg" alt="X">
+                                <p>
+                                    Du hast keine Kurse. Deine Lehrperson muss dich einem Kurs
+                                    hinzuzufügen.
+                                </p>
                             </div>
-                        {:then result}
-                            {#if result.length > 0}
-                                {#each result as course}
-                                    <p>{course.name}</p>
-                                {/each}
-                            {:else}
-                                <div class="courses-placeholder">
-                                    <img src="/images/empty-box-icon.svg" alt="X">
-                                    <p>
-                                        Du hast keine Kurse. Deine Lehrperson muss dich einem Kurs
-                                        hinzuzufügen.
-                                    </p>
-                                </div>
-                            {/if}
-                        {/await}
+                        {/if}
+
                     </div>
                 </div>
 
@@ -42,13 +38,7 @@
                         Projekte
                     </p>
                     <div class="projects block">
-                        {#await loadProjects()}
-                            <div class="loading-placeholder">
-                                <LoadingIndicator />
-                            </div>
-                        {:then projects}
-                            <ProjectDisplay projects={projects} />
-                        {/await}
+                        <ProjectDisplay projects={projects} />
                     </div>
                 </div>
 
@@ -70,13 +60,18 @@
 <script lang="ts">
     import ProfileDisplay from './profile_display.svelte'
     import ProjectDisplay from './project_display.svelte'
-    import LoadingIndicator from '$lib/components/loading_indicator.svelte'
+    import CourseDisplay from './student_course_display.svelte'
 
     import {goto} from '$app/navigation'
     import {PUBLIC_API_URL} from '$env/static/public'
 
-    let { user } = $props()
+    let { user, courses, projects } = $props()
 
+    $inspect(user)
+    $inspect(courses)
+    $inspect(projects)
+
+    /*
     async function loadCourses() {
         const res = await fetch(`${PUBLIC_API_URL}/courses`, {
             method: 'GET',
@@ -96,7 +91,7 @@
     function createProject() {
         // TODO: implement
     }
-
+    */
 
 </script>
 
@@ -163,6 +158,12 @@
     .courses-placeholder > img {
         width: 50px;
         margin-bottom: 12px;
+    }
+
+    :global {
+        .courses, .block > .wrapper:last-child {
+            border-bottom: none;
+        }
     }
 
     /* PROJECTS */

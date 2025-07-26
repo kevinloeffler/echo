@@ -34,7 +34,7 @@ type Course = {
     archived: boolean,
 
     students: User[],
-    content: Chapter[] | Lesson[],
+    content: CourseContent[],
     teacher: User,
 }
 

@@ -21,3 +21,25 @@ export function debounce(func: (...args: any[]) => void, wait: number): () => vo
         timeout = setTimeout(() => { func(...args) }, wait)
     }
 }
+
+export function findFirstLessonInCourse(course: Course): Optional<CourseContent> {
+    for (const content of course.content) {
+        const lesson = findFirstLesson(content)
+        if (lesson) {
+            return lesson
+        }
+    }
+}
+
+function findFirstLesson(courseContent: CourseContent): Optional<CourseContent> {
+
+    if (courseContent.type === 'lesson')  return courseContent
+    if (courseContent.content.length === 0)  return undefined
+
+    for (const content of courseContent.content) {
+        const lesson = findFirstLesson(content)
+        if (lesson) {
+            return lesson
+        }
+    }
+}

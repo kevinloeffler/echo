@@ -19,7 +19,7 @@ export async function load({ fetch }) {
         credentials: 'include',
     })
     const courses = await coursesResponse.json()
-    console.log('courses', courses)
+    console.log('courses:', courses)
 
     // load projects
     // TODO: implement
